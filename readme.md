@@ -1,8 +1,12 @@
+[取碼字形問題](https://zh.wikibooks.org/wiki/%E5%80%89%E9%A0%A1%E8%BC%B8%E5%85%A5%E6%B3%95/%E7%89%B9%E5%88%A5%E6%B3%A8%E6%84%8F#%E5%AD%97%E5%BD%A2%E5%95%8F%E9%A1%8C)
+
+[gcin (2.9.0) (2020-5-16)](https://wiki.archlinux.org/index.php/Gcin)
+
+[筆順](https://stroke-order.learningweb.moe.edu.tw/characters.do)
+
 [HPC教學影片](https://www.youtube.com/playlist?list=PLDFBC6E544364A540)
 
-[三代字典](http://input.foruto.com/cccls/cjzd.html)
-
-[五代字典]
+五代字典
   * ./cangjie5.sh
   * http://www.chinesecj.com/cj5dict/
 
