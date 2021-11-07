@@ -8,6 +8,9 @@
 #include <time.h>
 #include <ctype.h>
 
+#define KEY2_CTRL_R 18
+#define KEY2_DOUBLEESC 27
+
 enum {
   PAIR_DEFAULT=0,
   PAIR_KEYFUNC,
@@ -21,6 +24,38 @@ static_assert(0==FALSE);
 
 static WINDOW *w0=NULL;
 static WINDOW *w=NULL;
+
+const char *const keyboard[]={
+  /*a*/ "日",
+  /*b*/ "月",
+  /*c*/ "金",
+  /*d*/ "木",
+  /*e*/ "水",
+  /*f*/ "火",
+  /*g*/ "土",
+  /*h*/ "斜(竹)",
+  /*i*/ "點(戈)",
+  /*j*/ "交(十)",
+  /*k*/ "叉(大)",
+  /*l*/ "縱(中)",
+  /*m*/ "橫(一)",
+  /*n*/ "鉤(弓)",
+  /*o*/ "人",
+  /*p*/ "心",
+  /*q*/ "手",
+  /*r*/ "口",
+  /*s*/ "側(尸)",
+  /*t*/ "並(廿)",
+  /*u*/ "仰(山)",
+  /*v*/ "紐(女)",
+  /*w*/ "方(田)",
+  /*x*/ "難",
+  /*y*/ "卜",
+  /*z*/ "重"
+};
+
+static_assert(26*sizeof(void*)==sizeof(keyboard));
+
 
 static void initscr2(){
 
@@ -53,10 +88,16 @@ static void initscr2(){
 
 }
 
-static inline void keyboardcontrol(const char *const key,const char *const function){
-  printw(key);
+static inline void keyboardcontrol(const char *const *keys,const char *const function){
+  addch(' ');
+  for(;*keys;++keys){
+    printw(*keys);
+    assert(OK==attron(A_DIM));
+    addch('/');
+    assert(OK==attroff(A_DIM));
+  }
   assert(OK==attron(COLOR_PAIR(PAIR_KEYFUNC)));
-  printw("%-6s",function);
+  printw("%-7s",function);
   assert(OK==attroff(COLOR_PAIR(PAIR_KEYFUNC)));
 }
 
@@ -76,19 +117,28 @@ static void newwin2(){
   assert(OK==wrefresh(w));
 
   move(y-1,0);
-  keyboardcontrol("F10","Quit");
-  keyboardcontrol("Enter","Quit");
-  keyboardcontrol("BKSP","Quit");
-  // keyboardcontrol("F1","Help");
+  // keyboardcontrol((const char *const []){"F1","?",NULL},"Help");
+  keyboardcontrol((const char *const []){"F5","^R",NULL},"Resize");
+  keyboardcontrol((const char *const []){"F10","ESCESC","BKSP","Enter",NULL},"Quit");
   move(0,0); // physical cursor not moved until refresh
   assert(OK==refresh());
 
 }
 
-static inline void echo2(const int pair,const char *const s){
+static inline void echo2(const int pair,const int index,const char *const postfix){
+  assert(0<=index&&index<26);
   assert(OK==wattron(w,COLOR_PAIR(pair)));
-  wprintw(w,"%s",s);
+  wprintw(w,"%s%s",keyboard[index],postfix);
   assert(OK==wattroff(w,COLOR_PAIR(pair)));
+  assert(OK==wrefresh(w));
+}
+
+static void resize(){
+  delwin(w);w=NULL;
+  newwin2();
+  // wprintw(w,"resize()\n");
+  // assert(OK==clearok(w,TRUE));
+  // wrefresh(w);
 }
 
 static void loop(){
@@ -97,8 +147,8 @@ static void loop(){
 
     const char question=random()%('z'-'a'+1);
 
-    echo2(PAIR_QUESTION,(const char[]){'A'+question,'?','\0'});
-    wechochar(w,' ');
+    echo2(PAIR_QUESTION,question,"? ");
+    // wechochar(w,' ');
     // waddch(w,' ');
     // assert(OK==wrefresh(w));
 
@@ -106,21 +156,47 @@ static void loop(){
 
       const int answer=getch();
 
+      // if(
+      //   KEY_RESIZE==answer
+      // ){
+      //   wprintw(w,"resize()\n");
+      //   wrefresh(w);
+      // }
+
+      // resize
+      if(KEY_F(5)==answer||KEY2_CTRL_R==answer){
+        resize();
+        echo2(PAIR_QUESTION,question,"? ");
+        continue;
+      }
+
+      // quit
       if(false
         ||KEY_F(10)==answer
         ||'\n'==answer // nl() // getch(3x): KEY_ENTER is enter key on the numeric keypad
         ||KEY_BACKSPACE==answer
+        ||KEY2_DOUBLEESC==answer
       )
         return;
 
-      if('a'+question==tolower(answer)){
-        echo2(PAIR_CORRECT,(const char[]){toupper(answer),'\n','\0'});
-        wrefresh(w);
+      // garbage
+      if(!(
+        ('A'<=answer&&answer<='Z') ||
+        ('a'<=answer&&answer<='z')
+      )){
+        // wprintw(w,"%d\n",answer);
+        // wrefresh(w);
+        continue;
+      }
+
+      // correct
+      if(question==tolower(answer)-'a'){
+        echo2(PAIR_CORRECT,question,"\n");
         break;
       }
 
-      echo2(PAIR_INCORRECT,(const char[]){toupper(answer),'\0'});
-      wechochar(w,' ');
+      // incorrect
+      echo2(PAIR_INCORRECT,tolower(answer)-'a'," ");
 
     }
 

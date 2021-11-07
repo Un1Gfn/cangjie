@@ -41,9 +41,21 @@ EOF
 
   # htop(1) style
   # printf "\e[7m%s\e[0m" "Q"
-  printf "%s\e[44m%-6s\e[0m" F10   Quit
-  printf "%s\e[44m%-6s\e[0m" Enter Quit
-  printf "%s\e[44m%-6s\e[0m" BKSP  Quit
+  printf " "
+  printf F5
+  printf "\e[2m%s\e[0m" / # \|
+  printf ^R
+  printf "\e[2m%s\e[0m" / # \|
+  printf "\e[44m%-7s\e[0m" Resize
+
+  printf " "
+  printf F10
+  printf "\e[2m%s\e[0m" / # \|
+  printf BKSP
+  printf "\e[2m%s\e[0m" / # \|
+  printf Enter
+  printf "\e[2m%s\e[0m" / # \|
+  printf "\e[44m%-7s\e[0m" Quit
 
   printf "\e[$(tput lines);1H"
 
