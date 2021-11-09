@@ -16,8 +16,9 @@
 
 #include "serialize.h"
 
-// max N characters (262144)
+// max number of characters
 #define CJKS (1<<18)
+static_assert(262144==CJKS);
 
 #define STR0(x) #x
 #define STR(x) STR0(x)
@@ -137,8 +138,15 @@ int main(const int argc,const char *const argv[]){
     add();
 
   // store an array of all under key C
+  pc.dsize+=1; // terminating null wide character for "%ls"
   pc.dsize*=sizeof(wint_t);
-  assert(0==gdbm_store(dbf,(datum){.dptr=C,.dsize=strlen(C)},pc,GDBM_REPLACE));
+  assert(0==gdbm_store(dbf,(datum){.dptr=C,.dsize=strlen(C)+1},pc,GDBM_REPLACE));
+
+  datum d=gdbm_fetch(dbf,(datum){.dptr=C,.dsize=strlen(C)+1});
+  assert(d.dptr);
+  assert(0==d.dsize%sizeof(wint_t));
+  printf("%lu\n",d.dsize/sizeof(wint_t)-1);
+  // printf("%ls",(wint_t*)d.dptr);
 
   assert(0==gdbm_reorganize(dbf));
   count(false);

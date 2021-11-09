@@ -1,4 +1,4 @@
-// gcc -std=gnu11 -g -O0 -Wextra -Wall -Winline -Wshadow -fanalyzer $(pkg-config --cflags ncurses) -o key.out key.c $(pkg-config --libs ncurses) && ./key.out
+// instructions in sphinx.public/cangjie.rst
 
 #include <assert.h>
 #include <stdio.h>
@@ -7,6 +7,12 @@
 #include <locale.h>
 #include <time.h>
 #include <ctype.h>
+#include <string.h>
+#include <gdbm.h>
+#include <unistd.h> // access()
+#include <sys/stat.h> // chmod()
+
+#include "serialize.h"
 
 #define KEY2_CTRL_R 18
 #define KEY2_DOUBLEESC 27
@@ -21,6 +27,8 @@ enum {
 
 static_assert(1<=TRUE);
 static_assert(0==FALSE);
+
+static GDBM_FILE dbf=NULL;
 
 static WINDOW *w0=NULL;
 static WINDOW *w=NULL;
@@ -56,6 +64,10 @@ const char *const keyboard[]={
 
 static_assert(26*sizeof(void*)==sizeof(keyboard));
 
+static void help(const char *const argv0){
+  eprintf("Usage: %s dictionary.gdbm\n",argv0);
+  eprintf("       %s -h|--help\n",argv0);
+}
 
 static void initscr2(){
 
@@ -204,10 +216,21 @@ static void loop(){
 
 }
 
-int main(){
+int main(const int argc,const char *const argv[]){
+
+  if(2==argc&&0!=strcmp("-h",argv[1])&&0!=strcmp("--help",argv[1])){
+    ;
+  }else{
+    help(argv[0]);
+    exit(EXIT_FAILURE);
+  }
+
+  assert(0==access(argv[1],F_OK));
+  assert(0==access(argv[1],R_OK)); // make sure argv[1] grants read permission
+  assert(0==chmod(argv[1],00444));
+  assert((dbf=gdbm_open(argv[1],0,GDBM_READER,00000,NULL)));
 
   initscr2();
-
   newwin2();
 
   srand(time(NULL));
@@ -216,6 +239,7 @@ int main(){
   assert(OK==delwin(w));w=NULL;
   assert(OK==endwin());w0=NULL;
   assert(TRUE==isendwin());
+  assert(0==gdbm_close(dbf));dbf=NULL;
   return 0;
 
 }

@@ -1,22 +1,37 @@
 #!/bin/bash
+
+
 {
 
+  trap "tput cnorm; clear; exit;" SIGINT
   tput civis
   clear
 
   echo
 
-  # printf "\e[2m%s\e[0m" "[mistake 日_A with 斜(竹)_H 人_S 側(尸)_S, then press 日_A correctly]"
+  printf "\e[33m%s\e[0m %s" "倉[人戈日口]?"
   echo
-  printf "\e[33m%s \e[0m" "日?"
-  printf "\e[31m%s \e[0m" "斜(竹)"
-  printf "\e[31m%s \e[0m" "人"
-  printf "\e[32m%s \e[0m" "日"
+  printf ">"
+  printf " \e[32m%s\e[0m" 人 戈
+  printf " \e[31m%s\e[0m" 尸
+  echo
+  printf ">"
+  printf " \e[32m%s\e[0m" 人 戈 日 口
+  echo
+
+  printf "\e[33m%s\e[0m %s" "麻[戈日][戈木木]?"
+  echo
+  printf ">"
+  printf " \e[32m%s\e[0m" 戈 日
+  echo
+
+  printf "\e[33m%s\e[0m %s" "麻[戈日][戈木木]?"
+  echo
+  printf ">"
+  printf " \e[32m%s\e[0m" 戈 木 木
   echo
 
   # printf "\e[2m%s\e[0m" "[press Q]"
-  printf "\e[33m%s \e[0m" "水?"
-  echo
 
   # move cursor to bottom
   printf "\e[$(tput lines);1H"
