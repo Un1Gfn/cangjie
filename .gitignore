@@ -6,3 +6,6 @@
 
 /key.out
 /cscope.out
+
+/serialize.out
+/*.gdbm
