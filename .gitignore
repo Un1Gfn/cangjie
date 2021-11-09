@@ -6,3 +6,12 @@
 
 /key.out
 /cscope.out
+
+/serialize.out
+
+/Cangjie5.txt
+/Cangjie5.gdbm
+/Cangjie5_special.txt
+/Cangjie5_special.gdbm
+
+/db-5.3.28.tar.gz
