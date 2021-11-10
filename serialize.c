@@ -16,17 +16,10 @@
 
 #include "serialize.h"
 
-// max number of characters
-#define CJKS (1<<18)
-static_assert(262144==CJKS);
-
 #define STR0(x) #x
 #define STR(x) STR0(x)
 
 static GDBM_FILE dbf=NULL;
-
-static wint_t c[CJKS+1]={};
-static datum pc={.dptr=(void*)(c),.dsize=0};
 
 static_assert(32/8==sizeof(wint_t));
 static wint_t k=0;
@@ -63,8 +56,6 @@ static inline bool getline2(){
 
   // eprintf("0x%08X [%lc] ",k,k); //
   assert(1<=k);
-  // printf("%d\n",pc.dsize);
-  c[pc.dsize++]=k;
 
   bzero(v,RPK+1);
   assert('\t'==getchar());
@@ -136,17 +127,6 @@ int main(const int argc,const char *const argv[]){
 
   while(getline2())
     add();
-
-  // store an array of all under key C
-  pc.dsize+=1; // terminating null wide character for "%ls"
-  pc.dsize*=sizeof(wint_t);
-  assert(0==gdbm_store(dbf,(datum){.dptr=C,.dsize=strlen(C)+1},pc,GDBM_REPLACE));
-
-  datum d=gdbm_fetch(dbf,(datum){.dptr=C,.dsize=strlen(C)+1});
-  assert(d.dptr);
-  assert(0==d.dsize%sizeof(wint_t));
-  printf("%lu\n",d.dsize/sizeof(wint_t)-1);
-  // printf("%ls",(wint_t*)d.dptr);
 
   assert(0==gdbm_reorganize(dbf));
   count(false);
