@@ -18,8 +18,11 @@
 
 #include "serialize.h"
 
+#define KEY2_EOT 4
 #define KEY2_CTRL_R 18
 #define KEY2_DOUBLEESC 27
+
+#define ADV(PP) PP=&((*PP)->next)
 
 enum {
   PAIR_DEFAULT=0,
@@ -29,12 +32,12 @@ enum {
   PAIR_CORRECT
 };
 
-struct TYPE {
-  SLIST_ENTRY(TYPE) next;
+typedef struct _Node {
+  struct _Node *next;
   int val; // indices in v.dptr
-};
+} Node;
 
-SLIST_HEAD(HEADNAME,TYPE) head={};
+Node *head=NULL;
 
 static_assert(1<=TRUE);
 static_assert(0==FALSE);
@@ -174,8 +177,9 @@ static void newwin2(){
 
   move(y-1,0);
   // keyboardcontrol((const char *const []){"F1","?",NULL},"Help");
+  keyboardcontrol((const char *const []){"F2","Enter",NULL},"Skip");
   keyboardcontrol((const char *const []){"F5","^R",NULL},"Resize");
-  keyboardcontrol((const char *const []){"F10","ESCESC","BKSP","Enter",NULL},"Quit");
+  keyboardcontrol((const char *const []){"F10","^D","ESCESC","BKSP",NULL},"Quit");
   move(0,0); // physical cursor not moved until refresh
   assert(OK==refresh());
 
@@ -238,70 +242,88 @@ static void kv_free(){
 static void slist_build_from_v(){
 
   // init
-  // head=SLIST_HEAD_INITIALIZER(head);
-  SLIST_INIT(&head);
-  assert(SLIST_EMPTY(&head));
-  assert(!SLIST_FIRST(&head));
 
   // append
   // https://stackoverflow.com/a/14697764/
   // struct TYPE *elm=&((*M)=(struct TYPE){NULL,7});
-  #define M ((struct TYPE*)calloc(1,sizeof(struct TYPE)))
+  #define M ((Node*)calloc(1,sizeof(Node)))
   assert(6<=v.dsize);
   assert(0==v.dsize%(RPK+1));
-  for(int i=0;i<v.dsize;i+=RPK+1){    
-    struct TYPE *elm=M;
-    assert(elm);
-    elm->val=i;
-    SLIST_INSERT_HEAD(&head,elm,next); // reverse order
-    assert(!SLIST_EMPTY(&head));
+  int i=0;
+  Node **pp=&head;
+  while(i<v.dsize){    
+    *pp=M;
+    assert(*pp);
+    (*pp)->val=i;
+    ADV(pp);
+    i+=RPK+1;
   }
 
   // show
-  // struct TYPE *p=NULL;
-  // SLIST_FOREACH(p,&head,next){
-  //   wprintw(w,"[%d]%s ",p->val,v.dptr+(p->val));
-  // }
-  // assert(OK==wechochar(w,'\n'));
+  DEBUG(
+    for(Node *p=head;p;p=p->next){
+      wprintw(w,"[%d]%s ",p->val,v.dptr+(p->val));
+    }
+    assert(OK==wechochar(w,'\n'));
+  )
 
 }
 
 enum {
   FILTER_CONTINUE=0,
-  FILTER_DEPLETED=1,
-  FILTER_MATCHED=2
+  FILTER_DEPLETED,
+  FILTER_MATCHED
 };
 
 static int slist_filter_out(const int c){
-  // DEBUG(wprintw(w,"slist_filter_out()\n");wrefresh(w);)
-  if(SLIST_EMPTY(&head))
-    return FILTER_DEPLETED;
-  for(struct TYPE *p=SLIST_FIRST(&head);p;p=SLIST_NEXT(p,next)){
-    // DEBUG(wprintw(w,"c=%c [p->val]=%c [p->val+1]=%c\n",c,v.dptr[p->val],('\0'==v.dptr[(p->val)+1])?'0':v.dptr[(p->val)+1]);wrefresh(w);)
-    if(c==v.dptr[(p->val)]){
+  // DEBUG(wprintw(w,"p->val=%d ",head->val);wrefresh(w);)
+  DEBUG(wprintw(w,"slist_filter_out()\n");wrefresh(w);)
+  assert(head);
+  Node *prev=NULL;
+  Node *p=head;
+  for(;;){
+    if(!p)
+      break;
+    DEBUG(wprintw(w,"X\n");wrefresh(w);)
+    // DEBUG(wprintw(w,"c=%c ",c);wrefresh(w);)
+    DEBUG(wprintw(w,"p->val=%d ",head->val);wrefresh(w);)
+    // DEBUG(wprintw(w,"[p->val]=%c ",v.dptr[p->val]);wrefresh(w);)
+    // DEBUG(wprintw(w,"[p->val+1]=%c\n",('\0'==v.dptr[(p->val)+1])?'0':v.dptr[(p->val)+1]);wrefresh(w);)
+    if(c==v.dptr[p->val]){
       p->val+=1;
       if('\0'==v.dptr[p->val]){
         return FILTER_MATCHED;
       }
+      prev=p;
+      p=p->next;
     }else{
-      struct TYPE *t=p;
-      SLIST_REMOVE(&head,p,TYPE,next);
-      free(t);t=NULL;
+      if(prev){ // remove body
+        assert(head!=p);
+        prev->next=p->next;
+        free(p);
+        p=prev->next;
+      }else{ // sever head
+        assert(head==p);
+        head=p->next;
+        free(p);
+        p=head;
+      }
     }
   }
-  if(SLIST_EMPTY(&head))
+  if(!head)
     return FILTER_DEPLETED;
   return FILTER_CONTINUE;
 }
 
 static void slist_free(){
   // wprintw(w,"slist_free()\n");wrefresh(w);
-  struct TYPE *p=NULL;
-  while((p=SLIST_FIRST(&head))){
-    SLIST_REMOVE_HEAD(&head,next);
-    free(p);
+  Node *p=head;
+  while(p){
+    Node *t=p;
+    p=p->next;
+    free(t);
   }
-  assert(SLIST_EMPTY(&head));
+  head=NULL;
 }
 
 static void loop(){
@@ -318,10 +340,19 @@ static void loop(){
       wprintw(w,"> ");
       assert(OK==wrefresh(w));
       slist_build_from_v();
+      DEBUG(wprintw(w,"p->val=%d ",head->val);wrefresh(w);)
 
       for(;;){ // each pass types a radical
 
+        DEBUG(wprintw(w,"p->val=%d ",head->val);wrefresh(w);)
         int answer=getch();
+
+        // skip
+        if(KEY_F(2)==answer||'\n'==answer){ // nl() // getch(3x): KEY_ENTER is enter key on the numeric keypad
+          wechochar(w,'\n');
+          slist_free();
+          goto LBmatched;
+        }
 
         // resize
         if(KEY_F(5)==answer||KEY2_CTRL_R==answer){
@@ -337,9 +368,9 @@ static void loop(){
         // quit
         if(false
           ||KEY_F(10)==answer
-          ||'\n'==answer // nl() // getch(3x): KEY_ENTER is enter key on the numeric keypad
-          ||KEY_BACKSPACE==answer
+          ||KEY2_EOT==answer
           ||KEY2_DOUBLEESC==answer
+          ||KEY_BACKSPACE==answer
         ){
           slist_free();
           kv_free();
@@ -352,8 +383,8 @@ static void loop(){
           || ('Z'<answer&&answer<'a')
           || 'z'<answer
         ){
-          // wprintw(w,"%d\n",answer);
-          // wrefresh(w);
+          wprintw(w,"%d\n",answer);
+          wrefresh(w);
           continue;
         }
 
@@ -362,31 +393,19 @@ static void loop(){
         wrefresh(w);
 
         const int n=slist_filter_out(answer);
-        DEBUG(wprintw(w,"n=%d\n",n);wrefresh(w);)
-
-        DEBUG(wprintw(w,"C\n");wrefresh(w);)
 
         if(FILTER_MATCHED==n){
-          DEBUG(wprintw(w,"matched\n");wrefresh(w);)
           wechochar(w,'\n');
           slist_free();
           goto LBmatched;
         }
 
-        DEBUG(wprintw(w,"D\n");wrefresh(w);)
-
         if(FILTER_DEPLETED==n){
-          DEBUG(wprintw(w,"depleted\n");wrefresh(w);)
           wechochar(w,'\n');
           break;
         }
 
-        DEBUG(wprintw(w,"E\n");wrefresh(w);)
-
-        DEBUG(wprintw(w,"continue\n");wrefresh(w);)
         assert(FILTER_CONTINUE==n);
-
-        DEBUG(wprintw(w,"F\n");wrefresh(w);)
 
         // echo2(PAIR_CORRECT,tolower(answer)-'a',"\n");
         // echo2(PAIR_INCORRECT,tolower(answer)-'a'," ");
