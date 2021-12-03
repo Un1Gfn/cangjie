@@ -16,3 +16,6 @@
 /Cangjie5_special.gdbm
 
 /db-5.3.28.tar.gz
+
+/auxiliary_shapes/*.out
+/auxiliary_shapes/svg*
