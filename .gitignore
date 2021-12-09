@@ -17,5 +17,6 @@
 
 /db-5.3.28.tar.gz
 
-/auxiliary_shapes/*.out
 /auxiliary_shapes/svg*
+/auxiliary_shapes/*.o
+/auxiliary_shapes/*.out
