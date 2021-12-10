@@ -1,3 +1,4 @@
+#include <string.h> // memcpy
 #include <cairo.h>
 #include <stdio.h>
 #include <math.h> // NAN
@@ -13,8 +14,8 @@
 
 static cairo_surface_t *_surface=NULL;
 static const unsigned char *_data=NULL;
-int _stride=-1;
-#define CRD ((const Color(*)[_stride/ColorBytes])(_data))
+int _stride=-1; // in bytes, not pixels
+// #define CRD ((const Color(*)[_stride/ColorBytes])(_data))
 
 /* PUBLIC */
 
@@ -68,9 +69,11 @@ void cairo2fb(){
   //   printf("\e[2m"     " # " "\e[0m");
   //   puts("");
   // }
-  for(__u32 r=0;r<fb.h;++r)
-    for(__u32 c=0;c<fb.w;++c)
-      FBD[r][c]=CRD[r][c];
+  for(__u32 r=0;r<fb.h/5;++r){
+    memcpy(fb._d+fb._s*r, _data+_stride*r, fb.w*ColorBytes);
+    // for(__u32 c=0;c<fb.w;++c)
+    //   FBD[r][c]=CRD[r][c];
+  }
 }
 
 void end_cairo(){

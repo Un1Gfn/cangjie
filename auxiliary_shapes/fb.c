@@ -37,13 +37,13 @@ static void f_f_s(){
   assert(0==F.ywrapstep);
 
   assert(0==F.line_length%ColorBytes);
-  fb._s=F.line_length/ColorBytes;
-  printf("fb::stride %u bytes %u pixels\n",fb._s*ColorBytes,fb._s);
-  assert(1366<fb._s&&fb._s<1366+1366); // hard-code
+  fb._s=F.line_length;
+  printf("fb::stride %u bytes %u pixels\n",fb._s,fb._s/ColorBytes);
+  assert(1366<fb._s/ColorBytes&&fb._s/ColorBytes<1366+1366); // hard-code
 
   _smem_len=F.smem_len;
   assert(0==_smem_len%fb._s);
-  fb.h=_smem_len/ColorBytes/fb._s;
+  fb.h=_smem_len/fb._s;
   assert(768==fb.h); // hard-code
 
   assert(0==F.mmio_start);
@@ -129,11 +129,8 @@ void start_fb(){
 
   assert(3<=(_fd=open("/dev/fb0",O_RDWR)));
 
-  // printf("%ux%u (%ux%u) @ %p\n",fb.h,fb.w,fb.h,fb._s,fb._d);
   f_f_s();
-  // printf("%ux%u (%ux%u) @ %p\n",fb.h,fb.w,fb.h,fb._s,fb._d);
   f_v_s();
-  // printf("%ux%u (%ux%u) @ %p\n",fb.h,fb.w,fb.h,fb._s,fb._d);
 
   fb._d=mmap(NULL,_smem_len,PROT_READ|PROT_WRITE,MAP_SHARED,_fd,0);
   static_assert(NULL==(char*)MAP_FAILED+1);

@@ -10,9 +10,9 @@
 struct _fb_t {
   __u32 h; // framebuffer height
   __u32 w; // framebuffer width
-  __u32 _s; // framebuffer stride (padded width)
+  __u32 _s; // framebuffer stride in bytes, not pixels
   void *_d; // framebuffer data
-  #define FBD ((Color(*)[fb._s])(fb._d))
+  // #define FBD ((Color(*)[fb._s/ColorBytes])(fb._d))
 };
 
 extern struct _fb_t fb;
