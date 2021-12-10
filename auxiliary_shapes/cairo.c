@@ -34,7 +34,6 @@ void start_cairo(){
 
   // create context
   assert((_cr=cairo_create(_surface)));
-  cairo_scale(_cr,fb.w,fb.h);
   cairo_pattern_t *const pat=cairo_get_source(_cr);
   assert(pat);
   assert(CAIRO_PATTERN_TYPE_SOLID==cairo_pattern_get_type(pat));
@@ -45,15 +44,26 @@ void start_cairo(){
 }
 
 void test_cairo(){
-  cairo_set_line_width(_cr,0.01);
-  cairo_set_source_rgb(_cr
-    ,0.0 // red
-    ,1.0 // green
-    ,0.0 // blue
-  );
-  cairo_rectangle(_cr,0.25,0.25,0.5,0.5);
-  // cairo_rectangle(_cr,0.1,0.1,0.33,0.33);
+
+
+  // cairo_scale(_cr,fb.w,fb.h);
+  // cairo_set_line_width(_cr,0.01);
+  // cairo_set_source_rgb(_cr,0.0,1.0,0.0);
+  // cairo_rectangle(_cr,0.25,0.25,0.5,0.5);
+  // cairo_stroke(_cr);
+
+  // cairo_scale(_cr,fb.w/2,fb.h/2);
+  // cairo_set_line_width(_cr,0.01);
+  // cairo_set_source_rgb(_cr,0.0,1.0,1.0);
+  // cairo_rectangle(_cr,0.25,0.25,0.5,0.5);
+  // cairo_stroke(_cr);
+
+  cairo_scale(_cr,1.0,1.0);
+  cairo_set_line_width(_cr,10.0);
+  cairo_set_source_rgb(_cr,1.0,0.0,1.0);
+  cairo_rectangle(_cr,1366.0/2,768.0/2,1366.0/4,768.0/4);
   cairo_stroke(_cr);
+
 }
 
 void cairo2fb(){
