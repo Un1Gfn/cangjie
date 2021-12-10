@@ -1,80 +1,17 @@
 #include <stdio.h>
 #include <librsvg/rsvg.h>
 #include <assert.h>
-#include <math.h>
+#include <math.h> // NAN
 #include <stdint.h>
-
-#ifndef CAIRO_HAS_IMAGE_SURFACE
-#error
-#endif
-
-#define FMT_IMG CAIRO_FORMAT_ARGB32
-#define FMT_T uint32_t
-#define FMT_BITS 32
-#define FMT_BYTES 4
-static_assert(FMT_BYTES==sizeof(FMT_T));
+#include "./cairo.h"
+#include "./color.h"
 
 static_assert(2==LIBRSVG_MAJOR_VERSION);
 static_assert(52<=LIBRSVG_MINOR_VERSION);
 
-static void cairo(){
+// extern cairo_surface_t *_surface;
 
-  const int A=30;
-
-  cairo_surface_t *surface=NULL;
-  assert((surface=cairo_image_surface_create(FMT_IMG,A,A)));
-  assert(CAIRO_STATUS_SUCCESS==cairo_surface_status(surface));
-  assert(
-    FMT_IMG==cairo_image_surface_get_format(surface)
-    &&A==cairo_image_surface_get_width(surface)
-    &&A==cairo_image_surface_get_height(surface)
-  );
-
-  const int stride=cairo_image_surface_get_stride(surface);
-  assert(A<stride);
-  printf("stride %d bytes\n",stride);
-  const unsigned char *data=cairo_image_surface_get_data(surface);
-  assert(0==stride%FMT_BYTES);
-  #define DAT ((const FMT_T (*)[stride/FMT_BYTES])(data))
-
-  cairo_t *cr=NULL; // the cr
-  assert((cr=cairo_create(surface)));
-  cairo_scale(cr,(double)A,(double)A);
-  cairo_set_line_width(cr,0.1);
-
-  cairo_pattern_t *pat=cairo_get_source(cr);
-  assert(pat);
-  assert(CAIRO_PATTERN_TYPE_SOLID==cairo_pattern_get_type(pat));
-  double red=NAN, green=NAN, blue=NAN, alpha=NAN;
-  assert(CAIRO_STATUS_SUCCESS==cairo_pattern_get_rgba(pat,&red,&green,&blue,&alpha));
-  assert( 0.0==red && 0.0==green && 0.0==blue && 0.0+1.0==alpha );
-
-  cairo_set_source_rgb(cr,1.0,1.0,0.0);
-  cairo_rectangle(cr,0.25,0.25,0.5,0.5);
-  cairo_stroke(cr);
-
-  cairo_surface_flush(surface);
-  for(int r=0;r<A;++r){
-    printf("\e[2m" "%02d # " "\e[0m",r);
-    for(int c=0;c<A;++c){
-      if(0==DAT[r][c])putchar('.');
-      // else {printf("\n%X\n",DAT[r][c]);exit(0);}
-      // MSB alphaFF redFF greenFF blue00 LSB
-      else if(0xFFFFFF00==DAT[r][c])putchar('O');
-      else assert(0);
-    }
-    printf("\e[2m"     " # " "\e[0m");
-    puts("");
-  }
-
-  cairo_destroy(cr);cr=NULL;
-  cairo_surface_destroy(surface);surface=NULL;
-
-  puts("done");
-
-}
-
-static void load(const char *const s){
+void rsvg2cairo(const char *const s){
 
   assert(s&&s[0]);
   puts(s);
@@ -102,17 +39,11 @@ static void load(const char *const s){
   gdouble dpi_y=0.0;
   gint flags=-1;
   g_object_get(G_OBJECT(h),
+    // deprecated: desc em ex height metadata title width
     "base_uri",   &base_uri,
-    // "desc"     deprecated
     "dpi-x",      &dpi_x,
     "dpi-y",      &dpi_y,
-    // "em"       deprecated
-    // "ex"       deprecated
     "flags",      &flags,
-    // "height",  deprecated
-    // "metadata" deprecated
-    // "title",   deprecated
-    // "width",   deprecated
   NULL);
 
   assert(base_uri&&0==strncmp("file://",base_uri,7)&&0==strcmp(s,base_uri+7));
@@ -144,25 +75,15 @@ static void load(const char *const s){
 
   // document <- layer <- element
 
-  cairo_t *cr=NULL;
-
-  assert(rsvg_handle_render_document(h,cr,&(RsvgRectangle){.x=0,.y=0,.width=100,.height=100},&e));
-
+  assert(_cr);
+  assert(rsvg_handle_render_document(h,_cr,&(RsvgRectangle){.x=0.0,.y=0.0,.width=150.0,.height=150.0},&e));
   assert(!e);
 
+  // puts("A");
+  // assert(CAIRO_STATUS_SUCCESS==cairo_surface_write_to_png(_surface,"hello.png"));
+  // puts("B");
+
+  // g_object_unref(h);h=NULL;
   g_clear_object(&h);
-
-}
-
-int main(){
-
-  // puts("XxY");
-  // load("/home/darren/cangjie/auxiliary_shapes/svg/Cjrm-a0.svg");
-  // load("/home/darren/cangjie/auxiliary_shapes/svg/Cjem-a0-1.svg");
-
-  cairo();
-
-
-  return 0;
 
 }

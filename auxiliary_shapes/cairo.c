@@ -13,11 +13,13 @@
 
 static cairo_surface_t *_surface=NULL;
 static const unsigned char *_data=NULL;
-static cairo_t *_cr=NULL; // context
 int _stride=-1;
 #define CRD ((const Color(*)[_stride/ColorBytes])(_data))
 
 /* PUBLIC */
+
+// cairo_surface_t *_surface=NULL;
+cairo_t *_cr=NULL; // context
 
 void start_cairo(){
 
@@ -41,29 +43,15 @@ void start_cairo(){
   assert(CAIRO_STATUS_SUCCESS==cairo_pattern_get_rgba(pat,&red,&green,&blue,&alpha));
   assert( 0.0==red && 0.0==green && 0.0==blue && 0.0+1.0==alpha );
 
+  // 1:1
+  cairo_scale(_cr,1.0,1.0);
+
 }
 
-void test_cairo(){
-
-
-  // cairo_scale(_cr,fb.w,fb.h);
-  // cairo_set_line_width(_cr,0.01);
-  // cairo_set_source_rgb(_cr,0.0,1.0,0.0);
-  // cairo_rectangle(_cr,0.25,0.25,0.5,0.5);
-  // cairo_stroke(_cr);
-
-  // cairo_scale(_cr,fb.w/2,fb.h/2);
-  // cairo_set_line_width(_cr,0.01);
-  // cairo_set_source_rgb(_cr,0.0,1.0,1.0);
-  // cairo_rectangle(_cr,0.25,0.25,0.5,0.5);
-  // cairo_stroke(_cr);
-
-  cairo_scale(_cr,1.0,1.0);
-  cairo_set_line_width(_cr,10.0);
-  cairo_set_source_rgb(_cr,1.0,0.0,1.0);
-  cairo_rectangle(_cr,1366.0/2,768.0/2,1366.0/4,768.0/4);
-  cairo_stroke(_cr);
-
+void cleairo(){
+  assert(_cr);
+  cairo_set_source_rgb(_cr,1.0,1.0,1.0);
+  cairo_paint(_cr);
 }
 
 void cairo2fb(){
