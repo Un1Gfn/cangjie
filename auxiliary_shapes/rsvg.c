@@ -13,7 +13,7 @@ static_assert(52<=LIBRSVG_MINOR_VERSION);
 void rsvg2cairo(const __u32 y,const __u32 l,const char *const s){
 
   assert(s&&s[0]);
-  puts(s);
+  // puts(s);
 
   // MAX() defined in /usr/include/glib-2.0/glib/gmacros.h
   void *_=alloca(MAX(sizeof(RsvgLength),sizeof(gdouble)));

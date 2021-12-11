@@ -38,7 +38,7 @@ static void f_f_s(){
 
   assert(0==F.line_length%ColorBytes);
   fb._s=F.line_length;
-  printf("fb::stride %u bytes %u pixels\n",fb._s,fb._s/ColorBytes);
+  fprintf(stderr,"fb::stride %u bytes %u pixels\n",fb._s,fb._s/ColorBytes);
   assert(1366<fb._s/ColorBytes&&fb._s/ColorBytes<1366+1366); // hard-code
 
   _smem_len=F.smem_len;
@@ -138,8 +138,13 @@ void start_fb(){
 
 }
 
+void zero2fb(){
+  bzero(fb._d,_smem_len);
+}
+
 void end_fb(){
   assert(0==munmap(fb._d,_smem_len));fb._d=NULL;
+  _smem_len=0;
   close(_fd);
   _fd=-1;
 }

@@ -32,7 +32,7 @@ void start_cairo(){
     &&(int64_t)fb.w==cairo_image_surface_get_width(_surface)
     &&(int64_t)fb.h==cairo_image_surface_get_height(_surface));
   assert((int64_t)fb.w<(_stride=cairo_image_surface_get_stride(_surface)));
-  printf("cairo::stride %d bytes\n",_stride);
+  fprintf(stderr,"cairo::stride %d bytes\n",_stride);
   _data=cairo_image_surface_get_data(_surface);
   assert(0==_stride%ColorBytes);
 

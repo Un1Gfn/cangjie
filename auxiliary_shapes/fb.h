@@ -19,4 +19,6 @@ extern struct _fb_t fb;
 
 void start_fb();
 
+void zero2fb();
+
 void end_fb();
