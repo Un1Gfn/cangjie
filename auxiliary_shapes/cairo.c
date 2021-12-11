@@ -12,14 +12,15 @@
 
 /* PRIVATE */
 
+// #define CRD ((const Color(*)[_stride/ColorBytes])(_data))
 static cairo_surface_t *_surface=NULL;
 static const unsigned char *_data=NULL;
-int _stride=-1; // in bytes, not pixels
-// #define CRD ((const Color(*)[_stride/ColorBytes])(_data))
+static int _stride=-1; // in bytes, not pixels
 
 /* PUBLIC */
 
-// cairo_surface_t *_surface=NULL;
+__u32 current_x=0; // hight x value reached so far
+
 cairo_t *_cr=NULL; // context
 
 void start_cairo(){
@@ -50,6 +51,7 @@ void start_cairo(){
 }
 
 void cleairo(){
+  current_x=0;
   assert(_cr);
   cairo_set_source_rgb(_cr,1.0,1.0,1.0);
   cairo_paint(_cr);
@@ -69,10 +71,8 @@ void cairo2fb(){
   //   printf("\e[2m"     " # " "\e[0m");
   //   puts("");
   // }
-  for(__u32 r=0;r<fb.h/5;++r){
+  for(__u32 r=0;r<fb.h;++r){
     memcpy(fb._d+fb._s*r, _data+_stride*r, fb.w*ColorBytes);
-    // for(__u32 c=0;c<fb.w;++c)
-    //   FBD[r][c]=CRD[r][c];
   }
 }
 

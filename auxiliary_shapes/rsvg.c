@@ -5,13 +5,12 @@
 #include <stdint.h>
 #include "./cairo.h"
 #include "./color.h"
+#include "./fb.h"
 
 static_assert(2==LIBRSVG_MAJOR_VERSION);
 static_assert(52<=LIBRSVG_MINOR_VERSION);
 
-// extern cairo_surface_t *_surface;
-
-void rsvg2cairo(const char *const s){
+void rsvg2cairo(const __u32 y,const __u32 l,const char *const s){
 
   assert(s&&s[0]);
   puts(s);
@@ -21,6 +20,7 @@ void rsvg2cairo(const char *const s){
 
   RsvgHandle *h=NULL;
   GError *e=NULL;
+  assert(0==access(s,R_OK));
   assert((h=rsvg_handle_new_from_file(s,&e))&&(!e));
   assert(G_IS_OBJECT(h)&&G_OBJECT_TYPE_NAME(h)&&0==strcmp("RsvgHandle",G_OBJECT_TYPE_NAME(h)));
 
@@ -34,20 +34,20 @@ void rsvg2cairo(const char *const s){
   // g_object_get_property(o,"?",&v);puts(X_g_value_get_string(&v));
   // v=(GValue){};
 
-  gchar *base_uri=NULL;
+  // gchar *base_uri=NULL;
   gdouble dpi_x=0.0;
   gdouble dpi_y=0.0;
   gint flags=-1;
   g_object_get(G_OBJECT(h),
     // deprecated: desc em ex height metadata title width
-    "base_uri",   &base_uri,
+    // "base_uri",   &base_uri,
     "dpi-x",      &dpi_x,
     "dpi-y",      &dpi_y,
     "flags",      &flags,
   NULL);
 
-  assert(base_uri&&0==strncmp("file://",base_uri,7)&&0==strcmp(s,base_uri+7));
-  g_free(base_uri);base_uri=NULL;
+  // assert(base_uri&&0==strncmp("file://",base_uri,7)&&0==strcmp(s,base_uri+7));
+  // g_free(base_uri);base_uri=NULL;
   assert(0==90.0-dpi_x);
   assert(0==90.0-dpi_y);
   // printf("resolution (dots per inch) %.1lfx%.1lf\n",dpi_x,dpi_y);
@@ -76,7 +76,15 @@ void rsvg2cairo(const char *const s){
   // document <- layer <- element
 
   assert(_cr);
-  assert(rsvg_handle_render_document(h,_cr,&(RsvgRectangle){.x=0.0,.y=0.0,.width=150.0,.height=150.0},&e));
+  assert(current_x+l+10<fb.w);
+  assert(y+l+10<fb.h);
+  assert(rsvg_handle_render_document(h,_cr,&(RsvgRectangle){
+    .x=(double)current_x,
+    .y=(double)y,
+    .width=l,
+    .height=l
+  },&e));
+  current_x+=l;
   assert(!e);
 
   // puts("A");

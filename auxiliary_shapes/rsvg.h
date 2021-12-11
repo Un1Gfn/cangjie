@@ -1,3 +1,5 @@
 #pragma once
 
-void rsvg2cairo(const char *const);
+#include <linux/types.h> // __u32
+
+void rsvg2cairo(const __u32,const __u32,const char *const);
