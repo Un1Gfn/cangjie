@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <wchar.h>
 
-#include "serialize.h"
+#include "./rpk.h"
 
 #define STR0(x) #x
 #define STR(x) STR0(x)

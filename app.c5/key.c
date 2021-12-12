@@ -15,8 +15,8 @@
 
 // #define DEBUG_ENABLED
 #include "./debug.h"
-
-#include "serialize.h"
+#include "./l2r.h"
+#include "./rpk.h"
 
 #define KEY2_EOT 4
 #define KEY2_CTRL_R 18
@@ -37,7 +37,7 @@ typedef struct _Node {
   int val; // indices in v.dptr
 } Node;
 
-Node *head=NULL;
+static Node *head=NULL;
 
 static_assert(1<=TRUE);
 static_assert(0==FALSE);
@@ -51,7 +51,7 @@ static WINDOW *w=NULL;
 
 static gdbm_count_t n_kanji=0;
 
-const char *const keyboard_explained[]={
+static const char *const keyboard_explained[]={
   /*a*/ "日",
   /*b*/ "月",
   /*c*/ "金",
@@ -75,35 +75,6 @@ const char *const keyboard_explained[]={
   /*u*/ "仰(山)",
   /*v*/ "紐(女)",
   /*w*/ "方(田)",
-  /*x*/ "難",
-  /*y*/ "卜",
-  /*z*/ "重"
-};
-
-const char *const keyboard[]={
-  /*a*/ "日",
-  /*b*/ "月",
-  /*c*/ "金",
-  /*d*/ "木",
-  /*e*/ "水",
-  /*f*/ "火",
-  /*g*/ "土",
-  /*h*/ "竹",
-  /*i*/ "戈",
-  /*j*/ "十",
-  /*k*/ "大",
-  /*l*/ "中",
-  /*m*/ "一",
-  /*n*/ "弓",
-  /*o*/ "人",
-  /*p*/ "心",
-  /*q*/ "手",
-  /*r*/ "口",
-  /*s*/ "尸",
-  /*t*/ "廿",
-  /*u*/ "山",
-  /*v*/ "女",
-  /*w*/ "田",
   /*x*/ "難",
   /*y*/ "卜",
   /*z*/ "重"
@@ -193,22 +164,15 @@ static inline void echo2(const int pair,const int index,const char *const postfi
   assert(OK==wrefresh(w));
 }
 
-static const char *ch2radical(const char c){
-  // assert(('A'<=c&&c<='Z')||('a'<=c&&c<='z'))
-  // return keyboard[tolower(c)-'a'];
-  assert('a'<=c&&c<='z');
-  return keyboard[c-'a'];
-}
-
 static void ask(){
   wprintw(w,"%lc",*((wint_t*)k.dptr));
-  for(int i=0;i<v.dsize;i+=RPK+1){    
+  for(int i=0;i<v.dsize;i+=RPK+1){
     // wprintw(w,"[%s]",v.dptr+i);
     waddch(w,'[');
     for(int j=0;j<RPK+1;++j){
       const char c=v.dptr[i+j];
       if('a'<=c&&c<='z')
-        wprintw(w,"%s",ch2radical(c));
+        wprintw(w,"%s",letter2radical(c));
       else
         assert('\0'==c);
     }
@@ -389,7 +353,7 @@ static void loop(){
         }
 
         answer=tolower(answer);
-        wprintw(w,"%s ",ch2radical(answer));
+        wprintw(w,"%s ",letter2radical(answer));
         wrefresh(w);
 
         const int n=slist_filter_out(answer);

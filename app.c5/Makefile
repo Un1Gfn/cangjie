@@ -1,6 +1,8 @@
 ##############################################################################################
 
-CFLAGS:=-std=gnu11 -g -O0 -Wextra -Wall -Winline -Wshadow -fanalyzer
+# #include <uchar.h>
+# -fextended-identifiers for \unnnn and \U00nnnnnn notations
+CFLAGS:=-std=gnu11 -g -O0 -Wextra -Wall -Winline -Wshadow -fanalyzer -fextended-identifiers
 LDLIBS:=-lgdbm
 
 default: dict serialize key Cangjie5_special.gdbm Cangjie5.gdbm
@@ -10,12 +12,15 @@ clean:
 
 ##############################################################################################
 
-dict:
+dict: dict.o l2r.o
+	$(CC) -o $@ $^ -lgdbm
+
+l2r.o:
 
 ##############################################################################################
 
-key: key.o
-	$(CC) -o $@ $^ $(shell pkg-config --libs ncurses) -lgdbm
+key: key.o l2r.o
+	$(CC) -o $@ $^ -lgdbm $(shell pkg-config --libs ncurses)
 
 key.o: CFLAGS+=$(shell pkg-config --cflags ncurses) -Wno-analyzer-use-after-free
 
