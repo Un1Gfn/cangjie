@@ -46,16 +46,20 @@ static void lookup(const wchar_t wc){
 
 }
 
+static void help(const char *const argv0){
+  fprintf(stderr,"Usage: %s \"TEXT\" [\"TEXT\"...]\n",argv0);
+  fprintf(stderr,"       %s -h|--help\n",argv0);
+  exit(1);
+}
+
 int main(const int argc,char *const argv[]){
 
   static_assert(16==MB_LEN_MAX);
   assert(setlocale(LC_ALL,"zh_TW.UTF-8"));
   assert(6==MB_CUR_MAX);
   // printf("%zu\n",MB_CUR_MAX);
-
-  assert(2==argc||3<=argc);
-  // assert(argv[1]);
-  // assert(3<=strlen(argv[1]));
+  if(!(2<=argc&&0!=strcmp(argv[1],"-h")&&0!=strcmp(argv[1],"--help")))
+    help(argv[0]);
 
   assert(0==access(DB,F_OK));
   assert(0==chmod(DB,00444));
