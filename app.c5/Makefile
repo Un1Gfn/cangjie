@@ -3,10 +3,14 @@
 CFLAGS:=-std=gnu11 -g -O0 -Wextra -Wall -Winline -Wshadow -fanalyzer
 LDLIBS:=-lgdbm
 
-default: serialize key Cangjie5_special.gdbm Cangjie5.gdbm
+default: dict serialize key Cangjie5_special.gdbm Cangjie5.gdbm
 
 clean:
 	@rm -fv serialize key *.o *.gdbm *.out
+
+##############################################################################################
+
+dict:
 
 ##############################################################################################
 
