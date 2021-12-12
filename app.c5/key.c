@@ -1,17 +1,17 @@
 // instructions in sphinx.public/cangjie.rst
 
 #include <assert.h>
-#include <stdio.h>
-#include <curses.h>
-#include <stdlib.h>
-#include <locale.h>
-#include <time.h>
 #include <ctype.h>
-#include <string.h>
+#include <curses.h>
 #include <gdbm.h>
-#include <unistd.h> // access()
-#include <sys/stat.h> // chmod()
+#include <locale.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/queue.h> // SLIST_*
+#include <sys/stat.h> // chmod()
+#include <time.h>
+#include <unistd.h> // access()
 
 // #define DEBUG_ENABLED
 #include "./debug.h"
@@ -445,7 +445,6 @@ int main(const int argc,const char *const argv[]){
     exit(0);
 
   */}
-
 
   if(2==argc&&0!=strcmp("-h",argv[1])&&0!=strcmp("--help",argv[1])){
     ;

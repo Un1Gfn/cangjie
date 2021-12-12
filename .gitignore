@@ -1,24 +1,16 @@
-/cangjie5.dict.yaml
-/cangjie5.txt
-
 /5cjbook.zip
 /5cjbook/
 
-/key.out
-/cscope.out
-/valgrind.log
+/app.c5/*.gdbm
+/app.c5/*.o
+/app.c5/*.out
+/app.c5/key
+/app.c5/serialize
+/app.c5/Cangjie5.txt
+/app.c5/Cangjie5_special.txt
 
-/serialize.out
-
-/Cangjie5.txt
-/Cangjie5.gdbm
-/Cangjie5_special.txt
-/Cangjie5_special.gdbm
-
-/db-5.3.28.tar.gz
-
-/auxiliary_shapes/paths.txt
-/auxiliary_shapes/svg*
-/auxiliary_shapes/*.o
-/auxiliary_shapes/*.out
-/auxiliary_shapes/dict.tmp.c
+/app.aux/paths.txt
+/app.aux/svg*
+/app.aux/*.o
+/app.aux/*.out
+/app.aux/kre.tmp.c

@@ -6,7 +6,7 @@
 #include "./cairo.h"
 #include "./fb.h"
 #include "./rsvg.h"
-#include "./dict.h"
+#include "./kre.h"
 #include "./termios.h"
 
 // static void test(){
@@ -33,7 +33,7 @@ int main(){
   start_cairo();
   start_termios();
   srand(time(NULL));
-  assert(0==chdir("/home/darren/cangjie/auxiliary_shapes/svg/"));
+  assert(0==chdir("svg/"));
 
   // test();
 
@@ -48,8 +48,10 @@ int main(){
     cairo2fb();
     int c='\0';
     lb: c=getchar();
-    if('9'==c||'0'==c||'Q'==c/*||'q'==c*/){break;}
-    if(isalpha(c)&&d[i].k==tolower(c)){continue;}
+    if('Q'==c/*||'q'==c'9'==c||'0'==c*/)
+      break;
+    if(isalpha(c)&&d[i].k==tolower(c))
+      continue;
     // if('5'==c){cairo2fb();}
     // fprintf(stderr,"%d\n",c);
     cairo2fb();

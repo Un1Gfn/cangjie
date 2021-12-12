@@ -8,19 +8,18 @@ run:
 # 	tput reset; clear; env G_DEBUG=fatal-warnings valgrind --leak-check=full --show-leak-kinds=definite --log-file="/tmp/v.log" ./a.out 2>/tmp/a.log
 
 clean:
-	rm -fv *.o a.out dict.tmp.c
+	rm -fv *.o a.out kre.tmp.c
 
-a.out: LDLIBS+=$(shell pkg-config --libs cairo,librsvg-2.0)
-a.out: main.o fb.o cairo.o rsvg.o dict.tmp.o termios.o
-	$(CC) $(LDFLAGS) $(TARGET_ARCH) $^ $(LOADLIBES) $(LDLIBS) -o $@
+a.out: main.o fb.o cairo.o rsvg.o kre.tmp.o termios.o
+	$(CC) -o $@ $^ $(shell pkg-config --libs cairo,librsvg-2.0)
 
 fb.o:
 main.o: CFLAGS+=$(shell pkg-config --cflags cairo)
 cairo.o: CFLAGS+=$(shell pkg-config --cflags cairo)
 rsvg.o: CFLAGS+=$(shell pkg-config --cflags librsvg-2.0)
-dict.tmp.o:
+kre.tmp.o:
 termios.o:
 
-dict.tmp.c: dict.sh
-	shellcheck dict.sh # || true
-	./dict.sh 1>|dict.tmp.c
+kre.tmp.c: kre.sh
+	shellcheck kre.sh # || true
+	./kre.sh 1>|kre.tmp.c

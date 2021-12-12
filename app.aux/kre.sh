@@ -5,7 +5,7 @@
 cat <<"EOF"
 #include <assert.h>
 #include <stddef.h>
-#include "./dict.h"
+#include "./kre.h"
 
 const D d[]={
 EOF
