@@ -52,13 +52,35 @@ static void help(const char *const argv0){
   exit(1);
 }
 
+static void line(const char *s, size_t n){
+  for(;;){
+    assert('\0'!=*s);
+    mbstate_t m={};
+    wchar_t wc=0;
+    const size_t r=mbrtowc(&wc,s,n,&m);
+    assert(1<=r&&r<=4);
+    // printf("%zu\n",r);
+    assert(1==mbsinit(&m));
+    lookup(wc);
+    assert(n>=r);
+    // printf("n=%zu r=%zu \n",n,r);
+    if(n==r)
+      break;
+    n-=r;
+    s+=r;
+  }
+}
+
 int main(const int argc,char *const argv[]){
 
   static_assert(16==MB_LEN_MAX);
+  // assert(setlocale(LC_ALL,NULL));
+  // assert(setlocale(LC_ALL,""));
+  // assert(setlocale(LC_ALL,"C"));
   assert(setlocale(LC_ALL,"zh_TW.UTF-8"));
   assert(6==MB_CUR_MAX);
   // printf("%zu\n",MB_CUR_MAX);
-  if(!(2<=argc&&0!=strcmp(argv[1],"-h")&&0!=strcmp(argv[1],"--help")))
+  if(2<=argc&&(0==strcmp(argv[1],"-h")||0==strcmp(argv[1],"--help")))
     help(argv[0]);
 
   assert(0==access(DB,F_OK));
@@ -78,26 +100,34 @@ int main(const int argc,char *const argv[]){
   // free(d.dptr);d=(datum){};
   // exit(1);
 
-  argc>=3?puts(""):0;
-  for(int i=1;i<argc;++i){
-    const char *s=argv[i];
-    size_t n=strlen(s);
+  assert(1<=argc);
+  if(1==argc){
+    puts("");
     for(;;){
-      assert('\0'!=*s);
-      mbstate_t m={};
-      wchar_t wc=0;
-      const size_t r=mbrtowc(&wc,s,n,&m);
-      assert(1<=r&&r<=3);
-      assert(1==mbsinit(&m));
-      lookup(wc);
-      assert(n>=r);
-      // printf("n=%zu r=%zu \n",n,r);
-      if(n==r)
+      char *s=NULL;
+      size_t _=0;
+      // getchar();
+      const ssize_t r=getline(&s,&_,stdin);
+      puts("");
+      assert(s);
+      if(1==r){
+        free(s);s=NULL;
         break;
-      n-=r;
-      s+=r;
+      }
+      assert(2<=r);
+      const size_t n=strlen(s)-1;
+      assert('\n'==s[n]);
+      s[n]='\n';
+      line(s,n);
+      free(s);s=NULL;
+      puts("");
     }
-    argc>=3?puts(""):0;
+  }else{
+    3<=argc?puts(""):0;
+    for(int i=1;i<argc;++i){
+      line(argv[i],strlen(argv[i]));
+      3<=argc?puts(""):0;
+    }
   }
 
   assert(0==gdbm_close(dbf));dbf=NULL;
