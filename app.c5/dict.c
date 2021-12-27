@@ -1,19 +1,32 @@
-#include <assert.h>
-#include <locale.h>
-#include <string.h>
-#include <gdbm.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <wchar.h>
-#include <unistd.h>
-#include <sys/stat.h>
 #include <stdio.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+
+#include <assert.h>
+#include <gdbm.h>
+#include <limits.h>
+#include <locale.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <termios.h>
 #include <uchar.h>
+#include <unistd.h>
+#include <wchar.h>
+#include <signal.h>
 
 #include "./rpk.h"
 #include "./l2r.h"
 
 #define DB "Cangjie5.gdbm"
+
+#define NAKAGURO "\u30FB"
+#define FULLWIDTH_SPACE "\u3000"
+#define FULLWIDTH_BRACKET_L "\uFF3B"
+#define FULLWIDTH_BRACKET_R "\uFF3D"
+
+#define OFF(FS,F)      assert((FS)&(F));FS&=(~(F))
+#define ON(FS,F)  assert(0==((FS)&(F)));FS|=(F)
 
 static GDBM_FILE dbf=NULL;
 
@@ -24,23 +37,21 @@ static void lookup(const wchar_t wc){
   });
   if(!v.dptr){
     assert(!v.dsize);
-    puts("\u30FB"); // nakaguro
+    puts(NAKAGURO);
     return;
   }
   // fputwc(wc,stdout);
   printf("%lc",wc);
   // fwrite(d.dptr,1,d.dsize,stdout);
   for(int i=0;i<v.dsize;i+=RPK+1){
-    printf("\u3000"); // fullwidth space
-    // printf("\uFF3B"); // fullwidth '['
+    printf(FULLWIDTH_SPACE);
     for(int j=0;j<RPK;++j){
       const char c=v.dptr[i+j];
       if('\0'==c)
-        printf("\u3000"); // fullwidth space
+        printf(FULLWIDTH_SPACE);
       else
         printf("%s",letter2radical(c));
     }
-    // printf("\uFF3D"); // fullwidth ']'
   }
   puts("");
 
@@ -73,10 +84,13 @@ static void line(const char *s, size_t n){
 
 int main(const int argc,char *const argv[]){
 
+  // SJLJ
+  // > ...^C
+  // >
+  // https://stackoverflow.com/questions/16828378/readline-get-a-new-prompt-on-sigint
+  // signal(SIGINT,SIG_IGN);
+
   static_assert(16==MB_LEN_MAX);
-  // assert(setlocale(LC_ALL,NULL));
-  // assert(setlocale(LC_ALL,""));
-  // assert(setlocale(LC_ALL,"C"));
   assert(setlocale(LC_ALL,"zh_TW.UTF-8"));
   assert(6==MB_CUR_MAX);
   // printf("%zu\n",MB_CUR_MAX);
@@ -88,41 +102,26 @@ int main(const int argc,char *const argv[]){
   assert(0==access(DB,R_OK));
   assert((dbf=gdbm_open(DB,0,GDBM_READER,0,NULL)));
 
-  // wchar_t wc=0;
-  // assert(strlen("麻")==mbrtowc(&wc,"麻",strlen("麻"),&(mbstate_t){}));
-  // datum d=gdbm_fetch(dbf,(datum){
-  //   .dptr=(char*)&wc,
-  //   .dsize=sizeof(wchar_t)
-  // });
-  // assert(d.dptr);
-  // fwrite(d.dptr,1,d.dsize,stdout);
-  // puts("");
-  // free(d.dptr);d=(datum){};
-  // exit(1);
-
   assert(1<=argc);
-  if(1==argc){
+  if(1==argc){ // look up stdin loop
+    using_history();
     puts("");
     for(;;){
-      char *s=NULL;
-      size_t _=0;
-      // getchar();
-      const ssize_t r=getline(&s,&_,stdin);
-      puts("");
-      assert(s);
-      if(1==r){
-        free(s);s=NULL;
+      char *s=readline("?> ");
+      if(!s){ // EOF
+        clear_history();
+        puts("");
         break;
       }
-      assert(2<=r);
-      const size_t n=strlen(s)-1;
-      assert('\n'==s[n]);
-      s[n]='\n';
-      line(s,n);
+      if('\0'==s[0]) // blank
+        continue;
+      add_history(s);
+      puts("");
+      line(s,strlen(s));
       free(s);s=NULL;
       puts("");
     }
-  }else{
+  }else{ // look up argv
     3<=argc?puts(""):0;
     for(int i=1;i<argc;++i){
       line(argv[i],strlen(argv[i]));
