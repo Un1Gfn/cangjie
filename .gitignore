@@ -4,9 +4,8 @@
 /app.c5/*.gdbm
 /app.c5/*.o
 /app.c5/*.out
-/app.c5/dict
 /app.c5/key
-/app.c5/serialize
+/app.c5/mkdict
 /app.c5/Cangjie5.txt
 /app.c5/Cangjie5_special.txt
 
