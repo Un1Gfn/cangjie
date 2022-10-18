@@ -1,18 +1,15 @@
 /5cjbook.zip
 /5cjbook/
 
-/app.c5/*.gdbm
-/app.c5/*.o
-/app.c5/*.out
-/app.c5/key
-/app.c5/mkdict
-/app.c5/Cangjie5.txt
-/app.c5/Cangjie5_special.txt
-
 /app.aux/paths.txt
 /app.aux/svg*
 /app.aux/*.o
 /app.aux/*.out
 /app.aux/kre.tmp.c
+
+/app.c5*/*.gdbm
+/app.c5*/*.o
+/app.c5*/*.out
+/app.c5*/Cangjie5*.txt
 
 /yue.txt

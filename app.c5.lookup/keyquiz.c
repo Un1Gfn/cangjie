@@ -14,9 +14,9 @@
 #include <unistd.h> // access()
 
 // #define DEBUG_ENABLED
-#include "./debug.h"
-#include "./l2r.h"
-#include "./rpk.h"
+#include "debug.h"
+#include "l2r.h"
+#include "../include/rpk.h"
 
 #define KEY2_EOT 4
 #define KEY2_CTRL_R 18

@@ -15,10 +15,10 @@
 #include <wchar.h>
 #include <signal.h>
 
-#include "./rpk.h"
-#include "./l2r.h"
+#include "l2r.h"
+#include "../include/rpk.h"
 
-#define DB "/home/darren/cangjie/app.c5/Cangjie5.gdbm"
+#define DB "/home/darren/cangjie/app.c5.mkdict/Cangjie5.gdbm"
 
 #define NAKAGURO "\u30FB"
 #define FULLWIDTH_SPACE "\u3000"
