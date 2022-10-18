@@ -15,3 +15,5 @@
 /app.aux/*.o
 /app.aux/*.out
 /app.aux/kre.tmp.c
+
+/yue.txt

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <string.h>
 #include "./cairo.h"
 #include "./fb.h"
 #include "./rsvg.h"
@@ -27,7 +28,15 @@
 //   cairo2fb();
 // }
 
-int main(){
+int main(const int argc, const char *const *const argv){
+
+  if(!(argc==2&&0==strcmp("--nohelp",argv[1]))){
+    puts("press <Shift+Q> to quit");
+    puts("press <letter> to guess");
+    puts("run with '--nohelp' to suppress this tip");
+    printf("press <Enter> to continue ..."); fflush(stdout);
+    if('Q'==getchar()) exit(0);
+  }
 
   start_fb();
   start_cairo();
@@ -48,7 +57,7 @@ int main(){
     cairo2fb();
     int c='\0';
     lb: c=getchar();
-    if('Q'==c/*||'q'==c'9'==c||'0'==c*/)
+    if('Q'==c)
       break;
     if(isalpha(c)&&d[i].k==tolower(c))
       continue;

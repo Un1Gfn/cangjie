@@ -18,7 +18,7 @@
 #include "./rpk.h"
 #include "./l2r.h"
 
-#define DB "Cangjie5.gdbm"
+#define DB "/home/darren/cangjie/app.c5/Cangjie5.gdbm"
 
 #define NAKAGURO "\u30FB"
 #define FULLWIDTH_SPACE "\u3000"

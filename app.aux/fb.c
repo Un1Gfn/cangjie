@@ -21,9 +21,8 @@ static void f_f_s(){
   struct fb_fix_screeninfo F={};
   assert(0==ioctl(_fd,FBIOGET_FSCREENINFO,&F));
 
-  // assert(0==strcmp("i915""drm""fb",F.id));
   // puts(F.id);
-  assert(0==strcmp("i915",F.id));
+  assert(0==strcmp("i915",F.id)||0==strcmp("i915drmfb",F.id));
 
   assert(0==F.smem_start);
 

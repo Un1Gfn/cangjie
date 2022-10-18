@@ -22,22 +22,30 @@ function confirm {
   read -r
 }
 
-if [ -e "$LINK" ]; then
-  test -L "$LINK"
-  confirm "tc first -> ja first"
-  sudo rm -v "$LINK"
-  sudo fc-cache --force --verbose
-  fc-match --sort | grep --fixed-strings --regexp='NotoSansCJK-Regular.ttc: "Noto Sans CJK JP" "Regular"'
-else
-  confirm "ja first -> tc first"
-  sudo ln -sv "$TARGET" "$LINK"
-  sudo fc-cache --force --verbose
-  fc-match --sort | grep --fixed-strings --regexp='NotoSansCJK-Regular.ttc: "Noto Sans CJK TC" "Regular"'
-fi
+{
 
-echo
-echo 'https://wiki.archlinux.org/index.php/Localization/Simplified_Chinese#Fixed_Simplified_Chinese_display_as_a_variant_(Japanese)_glyph'
-echo
-echo "Please restart Chromium"
-echo
+  echo "unavailable"
+  exit 1
+
+  if [ -e "$LINK" ]; then
+    test -L "$LINK"
+    confirm "tc first -> ja first"
+    sudo rm -v "$LINK"
+    sudo fc-cache --force --verbose
+    fc-match --sort | grep --fixed-strings --regexp='NotoSansCJK-Regular.ttc: "Noto Sans CJK JP" "Regular"'
+  else
+    confirm "ja first -> tc first"
+    sudo ln -sv "$TARGET" "$LINK"
+    sudo fc-cache --force --verbose
+    fc-match --sort | grep --fixed-strings --regexp='NotoSansCJK-Regular.ttc: "Noto Sans CJK TC" "Regular"'
+  fi
+
+  echo
+  echo 'https://wiki.archlinux.org/index.php/Localization/Simplified_Chinese#Fixed_Simplified_Chinese_display_as_a_variant_(Japanese)_glyph'
+  echo
+  echo "Please restart Chromium"
+  echo
+
+}; exit
+
 

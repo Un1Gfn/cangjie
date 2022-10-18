@@ -52,12 +52,14 @@ void rsvg2cairo(const __u32 y,const __u32 l,const char *const s){
   assert(0==90.0-dpi_y);
   // printf("resolution (dots per inch) %.1lfx%.1lf\n",dpi_x,dpi_y);
 
-  gboolean hw=TRUE, hh=TRUE, hv=FALSE;
+  gboolean hw=0, hh=0, hv=0;
   // RsvgLength _={}; // ow={}, oh={};
   RsvgRectangle ov={};
   // rsvg_handle_get_intrinsic_dimensions(h,&hw,&ow,&hh,&oh,&hv,&ov);
   rsvg_handle_get_intrinsic_dimensions(h,&hw,_,&hh,_,&hv,&ov);
-  assert((!hw)&&(!hh)&&hv);
+  assert(hw);
+  assert(hh);
+  assert(hv);
   assert(0==45.0-ov.x);
   assert(0.0001>fabs(-33.8-ov.y));
   assert(0==150-ov.width);
