@@ -15,8 +15,19 @@
 
   [ "darren" = "$(whoami)" ] || exit 1
 
-  echo "http://$IPP"
+  echo
+
+  cd ~/cangjie/app.c5.srv
+
+  # for CGI in cgi-bin/*.cgi; do
+  #   echo "http://$IPP/$CGI"
+  # done
+  echo "http://$IPP/cgi-bin/02-sample.cgi"
+  echo "http://$IPP/03-tutorial.html"
+  echo
+
   busybox httpd "${ARGS[@]}"
+  echo
 
 }; exit
 

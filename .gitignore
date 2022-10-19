@@ -13,3 +13,7 @@
 /app.c5*/Cangjie5*.txt
 
 /yue.txt
+
+/app.c5.srv/cgi-bin/*.cgi
+/app.c5.srv/cgi-bin/*.out
+/app.c5.srv/cgi-bin/*.o
