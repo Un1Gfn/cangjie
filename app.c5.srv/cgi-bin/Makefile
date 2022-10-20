@@ -3,6 +3,7 @@ LDLIBS:=$(shell pkg-config --libs kcgi{,-html})
 ITEMS:=01-lookup 02-sample 03-tutorial
 
 default: $(addsuffix .cgi,$(ITEMS))
+	@echo $$RANDOM
 
 entr:
 	{ for i in $(ITEMS); do echo $${i}.c; done; } | entr $(MAKE)
