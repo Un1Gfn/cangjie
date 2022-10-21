@@ -13,28 +13,9 @@
 #include <kcgi.h>
 #include <kcgihtml.h>
 
-/*
- * Simple CGI application.
- * Compile it with `make samples` (or using gmake) and install it into
- * your web server's /cgi-bin.
- * The "template.xml" file should be in the /cgi-bin directory as well
- * and readable by the server process.
- * (Obviously this is just for a sample.)
- *
- * Assuming localhost/cgi-bin, the script is localhost/cgi-bin/sample.
- * The pages recognised are:
- *
- *   - /cgi-bin/sample/index.html
- *   - /cgi-bin/sample/template.html
- *   - /cgi-bin/sample/senddata.html
- *
- * See the sendindex et al. functions for what these do.
- */
-
 /* Recognised page requests.  See pages[]. */
 enum page {
   PAGE_INDEX,
-  PAGE_TEMPLATE,
   PAGE_SENDDATA,
   PAGE__MAX
 };
@@ -53,27 +34,6 @@ enum key {
 };
 
 /*
- * The elements in our template file.
- * The element key names are in the "templs" array.
- * See sendtemplate() for how this is used.
- */
-enum templ {
-  TEMPL_TITLE,
-  TEMPL_NAME,
-  TEMPL_REMOTE_ADDR,
-  TEMPL__MAX
-};
-
-/*
- * We need a structure because we can't get the "r" from the request.
- * This is used by our template callback.
- */
-struct tstrct {
-  struct khtmlreq req;
-  struct kreq *r;
-};
-
-/*
  * We'll use this to route pages by creating an array indexed by our
  * page.
  * Then when the page is parsed, we'll route directly into it.
@@ -82,11 +42,9 @@ typedef void (*disp)(struct kreq*);
 
 static void senddata(struct kreq*);
 static void sendindex(struct kreq*);
-static void sendtemplate(struct kreq*);
 
 static const disp disps[PAGE__MAX] = {
   sendindex,    // PAGE_INDEX
-  sendtemplate, // PAGE_TEMPLATE
   senddata,     // PAGE_SENDDATA
 };
 
@@ -97,22 +55,12 @@ static const struct kvalid keys[KEY__MAX] = {
   { kvalid_uint, "size" },   // KEY_PAGESIZE
 };
 
-/*
- * Template key names (as in @@TITLE@@ in the file).
- */
-static const char *const templs[TEMPL__MAX] = {
-  "title",       // TEMPL_TITLE
-  "name",        // TEMPL_NAME
-  "remote_addr", // TEMPL_REMOTE_ADDR
-};
-
 /* 
  * Page names (as in the URL component) mapped from the first name part
  * of requests, e.g., /sample.cgi/index.html -> index -> PAGE_INDEX.
  */
 static const char *const pages[PAGE__MAX] = {
   "index",    // PAGE_INDEX
-  "template", // PAGE_TEMPLATE
   "senddata"  // PAGE_SENDDATA
 };
 
@@ -132,45 +80,6 @@ static void resp_open(struct kreq *const req, enum khttp http){
   khttp_head(req, kresps[KRESP_STATUS], "%s", khttps[http]);
   khttp_head(req, kresps[KRESP_CONTENT_TYPE], "%s", kmimetypes[mime]);
   khttp_body(req);
-}
-
-/*
- * Callback for filling in a particular template part.
- * Let's just be simple for simplicity's sake.
- */
-static int template(size_t key, void *arg){
-  struct tstrct *const p = arg;
-  switch (key) {
-    case TEMPL_TITLE:
-      khtml_puts(&p->req, "title"); return 1; break;
-    case TEMPL_NAME:
-      khtml_puts(&p->req, "name"); return 1; break;
-    case TEMPL_REMOTE_ADDR:
-      khtml_puts(&p->req, p->r->remote); return 1; break;
-    default:
-      return 0;
-  }
-  assert(0);
-}
-
-/*
- * Demonstrates how to use templates.
- * Returns HTTP 200 and the template content.
- */
-static void sendtemplate(struct kreq *const req){
-  struct tstrct p={
-    .r = req,
-  };
-  struct ktemplate t={
-    .key = templs,
-    .keysz = TEMPL__MAX,
-    .arg = &p,
-    .cb = template,
-  };
-  resp_open(req, KHTTP_200);
-  khtml_open(&p.req, req, 0);
-  khttp_template(req, &t, "template.xml");
-  khtml_close(&p.req);
 }
 
 /*
@@ -234,7 +143,6 @@ static void sendindex(struct kreq *req){
     khtml_elem(&r, KELEM_BR);
   }
   addlink("/cgi-bin/02-sample.cgi/index.html",    ".cgi/index");
-  addlink("/cgi-bin/02-sample.cgi/template.html", ".cgi/template");
   addlink("/cgi-bin/02-sample.cgi/senddata.html", ".cgi/senddata");
   khtml_elem(&r, KELEM_BR);
 
