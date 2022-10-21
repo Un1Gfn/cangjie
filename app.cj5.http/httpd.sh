@@ -18,14 +18,18 @@
 
   echo
 
+  printf "\e]0;%s\a" "app.jc5.http (httpd)"
+
   cd "$SRV"
 
-  echo "http://$IPP/cgi-bin/cj5.cgi/index.html"
+  echo "http://$IPP/cgi-bin/cj5.cgi/index"
   echo
 
   echo "${CMD[*]}"
   "${CMD[@]}"
   echo
+
+  printf "\e]0;%s\a" "Alacritty"
 
 }; exit
 

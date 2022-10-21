@@ -4,8 +4,9 @@
 
 // include.base
 #include <assert.h>
-#include <stdlib.h> // EXIT_FAILURE atoi free
+#include <stdlib.h> // free EXIT_FAILURE
 #include <string.h> // memset
+#include <stdio.h> // fprintf(stderr, ...)
 
 // include.kcgi.requirements
 #include <stdarg.h>
@@ -19,7 +20,7 @@
 
 /* Recognised page requests.  See pages[]. */
 enum page {
-  PAGE_INDEX,
+  PAGE_DEFPAGE,
   PAGE__MAX
 };
 
@@ -30,36 +31,19 @@ enum page {
  */
 enum key {
   KEY_INTEGER, 
-  KEY_PAGECOUNT,
-  KEY_PAGESIZE,
   KEY__MAX
 };
 
-/*
- * We'll use this to route pages by creating an array indexed by our
- * page.
- * Then when the page is parsed, we'll route directly into it.
- */
-typedef void (*disp)(struct kreq*);
-
-static void sendindex(struct kreq*);
-
-static const disp disps[PAGE__MAX] = {
-  sendindex,    // PAGE_INDEX
-};
-
 static const struct kvalid keys[KEY__MAX] = {
-  { kvalid_int, "integer" }, // KEY_INTEGER
-  { kvalid_uint, "count" },  // KEY_PAGECOUNT
-  { kvalid_uint, "size" },   // KEY_PAGESIZE
+  { kvalid_int, "rvkjm9pqcg8o3" }, // KEY_INTEGER
 };
 
 /* 
  * Page names (as in the URL component) mapped from the first name part
- * of requests, e.g., /sample.cgi/index.html -> index -> PAGE_INDEX.
+ * of requests, e.g., /sample.cgi/defpage.html -> defpage -> PAGE_DEFPAGE.
  */
 static const char *const pages[PAGE__MAX] = {
-  "index",    // PAGE_INDEX
+  "defpage", // PAGE_DEFPAGE
 };
 
 /*
@@ -88,22 +72,18 @@ static void resp_open(struct kreq *const req, enum khttp http){
 static void sendindex(struct kreq *req){
 
   char *page=NULL;
-  kasprintf(&page, "%s/%s", req->pname, pages[PAGE_INDEX]);
+  kasprintf(&page, "%s/%s", req->pname, pages[PAGE_DEFPAGE]);
 
   struct khtmlreq r={};
   resp_open(req, KHTTP_200);
-  khtml_open(&r, req, 0);{
-
-    khtml_elem(&r, KELEM_DOCTYPE);
-
-    khtml_elem(&r, KELEM_HTML);
+  khtml_open(&r, req, 0);
+  khtml_elem(&r, KELEM_DOCTYPE);
+  khtml_elem(&r, KELEM_HTML);{
 
     khtml_elem(&r, KELEM_HEAD);{
-      khtml_elem(&r, KELEM_TITLE);{
-        khtml_puts(&r, "Welcome!");
-        khtml_closeelem(&r, 2);
-      }
-    }
+      khtml_elem(&r, KELEM_TITLE); khtml_puts(&r, "Welcome!"); khtml_closeelem(&r, 1);
+      khtml_closeelem(&r, 1);
+    } // </head>
 
     khtml_elem(&r, KELEM_BODY);{
 
@@ -115,7 +95,7 @@ static void sendindex(struct kreq *req){
         assert(KCGI_OK==khtml_closeelem(&r, 1));
         khtml_elem(&r, KELEM_BR);
       }
-      addlink("/cgi-bin/cj5.cgi/index.html", ".cgi/index");
+      addlink("/cgi-bin/cj5.cgi/defpage", "clear");
       khtml_elem(&r, KELEM_BR);
 
       khtml_puts(&r, "Welcome!");
@@ -126,57 +106,125 @@ static void sendindex(struct kreq *req){
         KATTR_METHOD, "post",
         KATTR_ENCTYPE, "multipart/form-data",
         KATTR_ACTION, page,
-        KATTR__MAX);
-      khtml_elem(&r, KELEM_FIELDSET);
-      khtml_elem(&r, KELEM_LEGEND); khtml_puts(&r, "Post (multipart)"); khtml_closeelem(&r, 1);
+        KATTR__MAX
+      ); {
 
-      khtml_elem(&r, KELEM_P);{
+        khtml_elem(&r, KELEM_FIELDSET);{
 
-        khtml_attr(&r, KELEM_INPUT,
-          KATTR_TYPE, "number",
-          KATTR_NAME, keys[KEY_INTEGER].name,
-          KATTR_VALUE, (req->fieldmap[KEY_INTEGER] ? req->fieldmap[KEY_INTEGER]->val : ""), KATTR__MAX
-        );
+          khtml_elem(&r, KELEM_LEGEND); khtml_puts(&r, "Post (multipart)"); khtml_closeelem(&r, 1);
 
-        if(req->fieldmap[KEY_INTEGER]){
-          khtml_puts(&r, " incr: ");
-          khtml_printf(&r, "%d", 1+atoi(req->fieldmap[KEY_INTEGER]->val));
-          // khtml_puts(&r, "");
-        }
+          khtml_elem(&r, KELEM_P);{
+            khtml_attr(&r, KELEM_INPUT,
+              KATTR_TYPE, "number",
+              KATTR_NAME, keys[KEY_INTEGER].name,
+              KATTR_VALUE, (req->fieldmap[KEY_INTEGER] ? req->fieldmap[KEY_INTEGER]->val : ""), KATTR__MAX
+            );
+            if(req->fieldmap[KEY_INTEGER]){
+              khtml_puts(&r, " incr: ");
+              khtml_printf(&r, "%ld", 1+req->fieldmap[KEY_INTEGER]->parsed.i);
+            }
+            khtml_closeelem(&r, 1);
+          }
+
+          khtml_elem(&r, KELEM_P);{
+            khtml_attr(&r, KELEM_INPUT,
+              KATTR_TYPE, "submit",
+              KATTR__MAX);
+            khtml_closeelem(&r, 1);
+          }
+
+          khtml_closeelem(&r, 1);
+
+        } // </fieldset>
 
         khtml_closeelem(&r, 1);
 
-      }
+      } // </form>
 
-      khtml_elem(&r, KELEM_P);{
-        khtml_attr(&r, KELEM_INPUT,
-          KATTR_TYPE, "submit",
-          KATTR__MAX);
-        khtml_closeelem(&r, 0);
-      }
+      khtml_closeelem(&r, 1);
 
-    }
+    } // </body>
 
-    khtml_close(&r);
-  }
+    khtml_closeelem(&r, 1);
+
+  } // </html>
+
+  assert(0==khtml_elemat(&r));
+  khtml_close(&r);
 
   free(page); page=NULL;
 
 }
 
+/*
+ * We'll use this to route pages by creating an array indexed by our
+ * page.
+ * Then when the page is parsed, we'll route directly into it.
+ */
+static void (*const disps[PAGE__MAX])(struct kreq*) = {
+  sendindex, // PAGE_DEFPAGE
+};
+
+void kpairshow(const char *const s, const struct kpair *const p){
+  fprintf(stderr, "%s ", s);
+  if(p){
+    assert(!p->keypos); // fprintf(stderr, "keypos=%zu ", p->keypos);
+    assert(0==strcmp("rvkjm9pqcg8o3", p->key)); // fprintf(stderr, "key=%s ", p->key);
+    assert(!p->next); // fprintf(stderr, "next@%p ", p->next);
+    {
+      assert(KPAIR_INTEGER==p->type); // fprintf(stderr, "type=%d ", p->type);
+      assert(0==strcmp("text/plain", p->ctype)); // fprintf(stderr, "ctype=%s ", p->ctype);
+      assert(KPAIR_VALID==p->state); // fprintf(stderr, "state=%d ", p->state);
+      assert(p->valsz==strlen(p->val)); // fprintf(stderr, "valsz=%zu ", p->valsz);
+      fprintf(stderr, "val='%s' ", p->val);
+      fprintf(stderr, "parsed=%ld ", p->parsed.i);
+    }
+    fprintf(stderr, "file@%p ", p->file);
+    assert(14==p->ctypepos); // fprintf(stderr, "ctypepos=%zu ", p->ctypepos);
+    fprintf(stderr, "xcode@%p ", p->xcode);
+    fprintf(stderr, "\n");
+  }else{
+    fprintf(stderr, "NULL\n");
+  }
+}
+
 int main(){
 
   struct kreq req={};
+  // req.port=9513u;
 
-  // Set up our main HTTP context.
-  assert(KCGI_OK==khttp_parse(&req, keys, KEY__MAX, pages, PAGE__MAX, PAGE_INDEX));
+  // main HTTP context.
+  assert(KCGI_OK==khttp_parse(
+    &req,                          // input fields and HTTP context parsed from the CGI environment
+    keys, KEY__MAX,                // input and validation fields
+    pages, PAGE__MAX, PAGE_DEFPAGE // recognised pathnames and fallback page if no default landing page is specified
+  ));
 
-  /* 
-   * Accept only GET, POST, and OPTIONS.
-   * Restrict to text/html and a valid page.
-   * If all of our parameters are valid, use a dispatch array to
-   * send us to the page handlers.
-   */
+  // req.port=9513u;
+
+  assert(!req.arg);
+  assert(KAUTH_NONE==req.auth);
+
+  assert(req.cookiemap);
+  assert(req.cookienmap);
+  for(int i=0; i<KEY__MAX; ++i){
+    assert(!req.cookiemap[i]);
+    assert(!req.cookienmap[i]);
+  }
+  assert(!req.cookies);
+  assert(!req.cookiesz);
+
+  assert(req.fieldmap);
+  assert(req.fieldnmap);
+
+  for(int i=0; i<KEY__MAX; ++i){
+    fprintf(stderr, "[%d] ", i); kpairshow("fieldmap",  req.fieldmap[i]);
+    assert(!req.fieldnmap[i]);
+  }
+
+  // assert();
+
+  // accept HTTP method GET/POST/OPTIONS only
   switch(req.method){
     case KMETHOD_OPTIONS:
       khttp_head(&req, kresps[KRESP_ALLOW], "OPTIONS GET POST");
@@ -184,17 +232,19 @@ int main(){
       break;
     case KMETHOD_GET:
     case KMETHOD_POST:
+      // restrict to text/html and a valid page
       if(PAGE__MAX <= req.page || KMIME_TEXT_HTML != req.mime)
         resp_open(&req, KHTTP_404); // 404 Not Found
       else
-        (*disps[req.page])(&req);
+        (*disps[req.page])(&req); // dispatch array to send to the page handlers
       break;
     default:
       resp_open(&req, KHTTP_405); // 405 Method Not Allowed
       break;
   }
 
-  khttp_free(&req);
+  khttp_free(&req); req=(struct kreq){};
+
   return 0;
 
 }
