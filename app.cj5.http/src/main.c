@@ -165,64 +165,74 @@ static void (*const disps[PAGE__MAX])(struct kreq*) = {
   sendindex, // PAGE_DEFPAGE
 };
 
-void kpairshow(const char *const s, const struct kpair *const p){
-  fprintf(stderr, "%s ", s);
-  if(p){
-    assert(!p->keypos); // fprintf(stderr, "keypos=%zu ", p->keypos);
-    assert(0==strcmp("rvkjm9pqcg8o3", p->key)); // fprintf(stderr, "key=%s ", p->key);
-    assert(!p->next); // fprintf(stderr, "next@%p ", p->next);
-    {
-      assert(KPAIR_INTEGER==p->type); // fprintf(stderr, "type=%d ", p->type);
-      assert(0==strcmp("text/plain", p->ctype)); // fprintf(stderr, "ctype=%s ", p->ctype);
-      assert(KPAIR_VALID==p->state); // fprintf(stderr, "state=%d ", p->state);
-      assert(p->valsz==strlen(p->val)); // fprintf(stderr, "valsz=%zu ", p->valsz);
-      fprintf(stderr, "val='%s' ", p->val);
-      fprintf(stderr, "parsed=%ld ", p->parsed.i);
-    }
-    fprintf(stderr, "file@%p ", p->file);
-    assert(14==p->ctypepos); // fprintf(stderr, "ctypepos=%zu ", p->ctypepos);
-    fprintf(stderr, "xcode@%p ", p->xcode);
-    fprintf(stderr, "\n");
-  }else{
-    fprintf(stderr, "NULL\n");
+// struct kpair defined in /usr/include/kcgi.h
+void inspect_kpair(const struct kpair *const p){
+  assert(p);
+  assert(!p->keypos); // fprintf(stderr, "keypos=%zu ", p->keypos);
+  assert(0==strcmp("rvkjm9pqcg8o3", p->key)); // fprintf(stderr, "key=%s ", p->key);
+  assert(!p->next); // fprintf(stderr, "next@%p ", p->next);
+  {
+    assert(KPAIR_INTEGER==p->type); // fprintf(stderr, "type=%d ", p->type);
+    assert(0==strcmp("text/plain", p->ctype)); // fprintf(stderr, "ctype=%s ", p->ctype);
+    assert(KPAIR_VALID==p->state); // fprintf(stderr, "state=%d ", p->state);
+    assert(p->valsz==strlen(p->val)); // fprintf(stderr, "valsz=%zu ", p->valsz);
+    fprintf(stderr, "val='%s' ", p->val);
+    fprintf(stderr, "parsed=%ld ", p->parsed.i);
   }
+  fprintf(stderr, "file@%p ", p->file);
+  assert(14==p->ctypepos); // fprintf(stderr, "ctypepos=%zu ", p->ctypepos);
+  fprintf(stderr, "xcode@%p ", p->xcode);
+  fprintf(stderr, "\n");
 }
+
+// void inspect_kreq(const struct kreq *const r){
+
+// }
 
 int main(){
 
   struct kreq req={};
   // req.port=9513u;
-
   // main HTTP context.
   assert(KCGI_OK==khttp_parse(
     &req,                          // input fields and HTTP context parsed from the CGI environment
     keys, KEY__MAX,                // input and validation fields
     pages, PAGE__MAX, PAGE_DEFPAGE // recognised pathnames and fallback page if no default landing page is specified
   ));
-
   // req.port=9513u;
 
+  // private application data
   assert(!req.arg);
+
+  // auto
   assert(KAUTH_NONE==req.auth);
 
-  assert(req.cookiemap);
-  assert(req.cookienmap);
+  // cookie
+  assert(req.cookiemap); assert(req.cookienmap);
   for(int i=0; i<KEY__MAX; ++i){
-    assert(!req.cookiemap[i]);
-    assert(!req.cookienmap[i]);
+    assert(!req.cookiemap[i]); assert(!req.cookienmap[i]);
   }
   assert(!req.cookies);
   assert(!req.cookiesz);
 
-  assert(req.fieldmap);
   assert(req.fieldnmap);
-
+  assert(req.fieldmap);
+  size_t cur=0;
   for(int i=0; i<KEY__MAX; ++i){
-    fprintf(stderr, "[%d] ", i); kpairshow("fieldmap",  req.fieldmap[i]);
     assert(!req.fieldnmap[i]);
+    fprintf(stderr, ": [%d] %s ", i, "fieldmap");
+    if(req.fieldmap[i]){
+      inspect_kpair(req.fieldmap[i]);
+      assert(req.fieldsz>cur);
+      assert(req.fieldmap[i]==&req.fields[cur++]); // QUERY_STRING req.fields req.fieldsz ?
+    }else{
+      fprintf(stderr, "NULL\n");
+    }
   }
+  assert(req.fieldsz==cur);
 
-  // assert();
+  // PATH_INFO
+  fprintf(stderr, ": fullpath=%s\n", req.fullpath);
 
   // accept HTTP method GET/POST/OPTIONS only
   switch(req.method){
