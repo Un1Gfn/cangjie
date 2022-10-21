@@ -166,6 +166,7 @@ static void (*const disps[PAGE__MAX])(struct kreq*) = {
 };
 
 // struct kpair defined in /usr/include/kcgi.h
+// env MANPAGER="less -R +% -J -j.5 -p 'char \*ctype'" man khttp_parse.3
 void inspect_kpair(const struct kpair *const p){
   assert(p);
   assert(!p->keypos); // fprintf(stderr, "keypos=%zu ", p->keypos);
@@ -185,9 +186,72 @@ void inspect_kpair(const struct kpair *const p){
   fprintf(stderr, "\n");
 }
 
-// void inspect_kreq(const struct kreq *const r){
+void inspect_kreq(const struct kreq *const r){
 
-// }
+  // private application data
+  assert(!r->arg);
+
+  // auto
+  assert(KAUTH_NONE==r->auth);
+
+  // cookie
+  assert(r->cookiemap); assert(r->cookienmap);
+  for(int i=0; i<KEY__MAX; ++i){
+    assert(!r->cookiemap[i]); assert(!r->cookienmap[i]);
+  }
+  assert(!r->cookies);
+  assert(!r->cookiesz);
+
+  assert(r->fieldnmap);
+  assert(r->fieldmap);
+  size_t cur=0;
+  for(int i=0; i<KEY__MAX; ++i){
+    assert(!r->fieldnmap[i]);
+    fprintf(stderr, ": [%d] %s ", i, "fieldmap");
+    if(r->fieldmap[i]){
+      inspect_kpair(r->fieldmap[i]);
+      assert(r->fieldsz>cur);
+      assert(r->fieldmap[i]==&(r->fields[cur++])); // QUERY_STRING r->fields r->fieldsz ?
+    }else{
+      fprintf(stderr, "NULL\n");
+    }
+  }
+  assert(r->fieldsz==cur);
+
+  assert(0==strcmp("/defpage", r->fullpath)); // fprintf(stderr, ": PATH_INFO=%s\n", r->fullpath);
+  fprintf(stderr, ": HTTP_HOST=%s\n", r->host);
+
+  assert(r->kdata);
+
+  assert(keys==r->keys);
+  assert(KEY__MAX==r->keysz);
+
+  // assert(KMETHOD_GET==r->method);
+
+  assert(KMIME_TEXT_HTML==r->mime);
+
+  assert(PAGE_DEFPAGE==r->page);
+  assert(0==strcmp("defpage", r->pagename)); // fprintf(stderr, ": pagename=%s\n", r->pagename);
+
+  assert(0==strcmp("/cgi-bin/cj5.cgi", r->pname)); // fprintf(stderr, ": SCRIPT_NAME=%s\n", r->pname);
+
+  assert(80u==r->port); // fprintf(stderr, ": SERVER_PORT=%u\n", r->port);
+
+  assert(0==memcmp(&(struct khttpauth){}, &(r->rawauth), sizeof(struct khttpauth)));
+
+  fprintf(stderr, ": REMOTE_ADDR=%s\n", r->remote);
+
+  fprintf(stderr, ": reqsz=%zu\n", r->reqsz);
+  for(size_t i=0; i<r->reqsz; ++i){
+    fprintf(stderr, "*%26s = %s\n", r->reqs[i].key, r->reqs[i].val);
+  }
+  assert(KSCHEME_HTTP==r->scheme);
+  fprintf(stderr, ": suffix@%p\n", r->suffix);
+
+  // env MANPAGER="less -R +% -J -j.5 -p 'char \*ctype'" man khttp_parse.3
+  // ...
+
+}
 
 int main(){
 
@@ -201,38 +265,7 @@ int main(){
   ));
   // req.port=9513u;
 
-  // private application data
-  assert(!req.arg);
-
-  // auto
-  assert(KAUTH_NONE==req.auth);
-
-  // cookie
-  assert(req.cookiemap); assert(req.cookienmap);
-  for(int i=0; i<KEY__MAX; ++i){
-    assert(!req.cookiemap[i]); assert(!req.cookienmap[i]);
-  }
-  assert(!req.cookies);
-  assert(!req.cookiesz);
-
-  assert(req.fieldnmap);
-  assert(req.fieldmap);
-  size_t cur=0;
-  for(int i=0; i<KEY__MAX; ++i){
-    assert(!req.fieldnmap[i]);
-    fprintf(stderr, ": [%d] %s ", i, "fieldmap");
-    if(req.fieldmap[i]){
-      inspect_kpair(req.fieldmap[i]);
-      assert(req.fieldsz>cur);
-      assert(req.fieldmap[i]==&req.fields[cur++]); // QUERY_STRING req.fields req.fieldsz ?
-    }else{
-      fprintf(stderr, "NULL\n");
-    }
-  }
-  assert(req.fieldsz==cur);
-
-  // PATH_INFO
-  fprintf(stderr, ": fullpath=%s\n", req.fullpath);
+  inspect_kreq(&req);
 
   // accept HTTP method GET/POST/OPTIONS only
   switch(req.method){

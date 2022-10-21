@@ -22,7 +22,7 @@
 
   cd "$SRV"
 
-  echo "http://$IPP/cgi-bin/cj5.cgi/index"
+  echo "http://$IPP/cgi-bin/cj5.cgi/defpage"
   echo
 
   echo "${CMD[*]}"
