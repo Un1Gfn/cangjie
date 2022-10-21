@@ -2,15 +2,19 @@
 // --> sample.c
 // --> https://kristaps.bsd.lv/kcgi/sample.c.html
 
+// include.base
 #include <assert.h>
-#include <stdarg.h> // va_list
-#include <stddef.h> // NULL
-#include <stdint.h> // int64_t
 #include <stdlib.h> // EXIT_FAILURE atoi free
 #include <string.h> // memset
-#include <sys/types.h> // size_t, ssize_t
 
+// include.kcgi.requirements
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <sys/types.h>
 #include <kcgi.h>
+
+// include.kcgihtml
 #include <kcgihtml.h>
 
 /* Recognised page requests.  See pages[]. */
@@ -83,8 +87,6 @@ static void resp_open(struct kreq *const req, enum khttp http){
  */
 static void sendindex(struct kreq *req){
 
-  const char *cp = req->fieldmap[KEY_INTEGER] ? req->fieldmap[KEY_INTEGER]->val : "";
-
   char *page=NULL;
   kasprintf(&page, "%s/%s", req->pname, pages[PAGE_INDEX]);
 
@@ -113,7 +115,7 @@ static void sendindex(struct kreq *req){
         assert(KCGI_OK==khtml_closeelem(&r, 1));
         khtml_elem(&r, KELEM_BR);
       }
-      addlink("/cgi-bin/02-sample.cgi/index.html", ".cgi/index");
+      addlink("/cgi-bin/cj5.cgi/index.html", ".cgi/index");
       khtml_elem(&r, KELEM_BR);
 
       khtml_puts(&r, "Welcome!");
@@ -133,15 +135,16 @@ static void sendindex(struct kreq *req){
         khtml_attr(&r, KELEM_INPUT,
           KATTR_TYPE, "number",
           KATTR_NAME, keys[KEY_INTEGER].name,
-          KATTR_VALUE, cp, KATTR__MAX
+          KATTR_VALUE, (req->fieldmap[KEY_INTEGER] ? req->fieldmap[KEY_INTEGER]->val : ""), KATTR__MAX
         );
-        khtml_closeelem(&r, 1);
 
         if(req->fieldmap[KEY_INTEGER]){
-          khtml_puts(&r, "incr: ");
+          khtml_puts(&r, " incr: ");
           khtml_printf(&r, "%d", 1+atoi(req->fieldmap[KEY_INTEGER]->val));
           // khtml_puts(&r, "");
         }
+
+        khtml_closeelem(&r, 1);
 
       }
 
@@ -163,10 +166,10 @@ static void sendindex(struct kreq *req){
 
 int main(){
 
-  struct kreq r={};
+  struct kreq req={};
 
   // Set up our main HTTP context.
-  assert(KCGI_OK==khttp_parse(&r, keys, KEY__MAX, pages, PAGE__MAX, PAGE_INDEX));
+  assert(KCGI_OK==khttp_parse(&req, keys, KEY__MAX, pages, PAGE__MAX, PAGE_INDEX));
 
   /* 
    * Accept only GET, POST, and OPTIONS.
@@ -174,17 +177,24 @@ int main(){
    * If all of our parameters are valid, use a dispatch array to
    * send us to the page handlers.
    */
-  if (KMETHOD_OPTIONS == r.method) {
-    khttp_head(&r, kresps[KRESP_ALLOW], "OPTIONS GET POST");
-    resp_open(&r, KHTTP_200);
-  }else if(KMETHOD_GET != r.method && KMETHOD_POST != r.method){
-    resp_open(&r, KHTTP_405);
-  }else if(PAGE__MAX == r.page ||  KMIME_TEXT_HTML != r.mime){
-    resp_open(&r, KHTTP_404);
-  }else
-    (*disps[r.page])(&r);
+  switch(req.method){
+    case KMETHOD_OPTIONS:
+      khttp_head(&req, kresps[KRESP_ALLOW], "OPTIONS GET POST");
+      resp_open(&req, KHTTP_200); // 200 OK
+      break;
+    case KMETHOD_GET:
+    case KMETHOD_POST:
+      if(PAGE__MAX <= req.page || KMIME_TEXT_HTML != req.mime)
+        resp_open(&req, KHTTP_404); // 404 Not Found
+      else
+        (*disps[req.page])(&req);
+      break;
+    default:
+      resp_open(&req, KHTTP_405); // 405 Method Not Allowed
+      break;
+  }
 
-  khttp_free(&r);
+  khttp_free(&req);
   return 0;
 
 }

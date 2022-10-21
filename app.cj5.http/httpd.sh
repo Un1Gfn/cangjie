@@ -20,9 +20,10 @@
 
   cd "$SRV"
 
-  echo "http://$IPP/cgi-bin/cj5.cgi"
+  echo "http://$IPP/cgi-bin/cj5.cgi/index.html"
   echo
 
+  echo "${CMD[*]}"
   "${CMD[@]}"
   echo
 
