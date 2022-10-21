@@ -7,13 +7,10 @@
 /app.aux/*.out
 /app.aux/kre.tmp.c
 
-/app.c5*/*.gdbm
-/app.c5*/*.o
-/app.c5*/*.out
-/app.c5*/Cangjie5*.txt
+/app.cj5*/**/*.cgi
+/app.cj5*/**/*.gdbm
+/app.cj5*/**/*.o
+/app.cj5*/**/*.out
+/app.cj5*/**/Cangjie5*.txt
 
 /yue.txt
-
-/app.c5.srv/cgi-bin/*.cgi
-/app.c5.srv/cgi-bin/*.out
-/app.c5.srv/cgi-bin/*.o

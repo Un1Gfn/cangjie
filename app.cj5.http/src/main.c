@@ -1,6 +1,6 @@
 // https://kristaps.bsd.lv/kcgi/
-// sample.c
-// https://kristaps.bsd.lv/kcgi/sample.c.html
+// --> sample.c
+// --> https://kristaps.bsd.lv/kcgi/sample.c.html
 
 #include <assert.h>
 #include <stdarg.h> // va_list
