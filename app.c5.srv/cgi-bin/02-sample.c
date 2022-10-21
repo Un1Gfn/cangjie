@@ -16,7 +16,6 @@
 /* Recognised page requests.  See pages[]. */
 enum page {
   PAGE_INDEX,
-  PAGE_SENDDATA,
   PAGE__MAX
 };
 
@@ -40,12 +39,10 @@ enum key {
  */
 typedef void (*disp)(struct kreq*);
 
-static void senddata(struct kreq*);
 static void sendindex(struct kreq*);
 
 static const disp disps[PAGE__MAX] = {
   sendindex,    // PAGE_INDEX
-  senddata,     // PAGE_SENDDATA
 };
 
 static const struct kvalid keys[KEY__MAX] = {
@@ -61,7 +58,6 @@ static const struct kvalid keys[KEY__MAX] = {
  */
 static const char *const pages[PAGE__MAX] = {
   "index",    // PAGE_INDEX
-  "senddata"  // PAGE_SENDDATA
 };
 
 /*
@@ -80,36 +76,6 @@ static void resp_open(struct kreq *const req, enum khttp http){
   khttp_head(req, kresps[KRESP_STATUS], "%s", khttps[http]);
   khttp_head(req, kresps[KRESP_CONTENT_TYPE], "%s", kmimetypes[mime]);
   khttp_body(req);
-}
-
-/*
- * Send a random amount of data.
- * Requires KEY_PAGECOUNT (optional), KEY_PAGESIZE (optional).
- * Page count is the number of times we flush a page (with the given
- * size) to the wire.
- * Returns HTTP 200 and the random data.
- */
-static void senddata(struct kreq *req){
-
-  int64_t nm = req->fieldmap[KEY_PAGECOUNT] ? req->fieldmap[KEY_PAGECOUNT]->parsed.i : 1024*1024;
-  nm = nm ? nm : 1;
-
-  int64_t sz = req->fieldmap[KEY_PAGESIZE] ? req->fieldmap[KEY_PAGESIZE]->parsed.i : 1;  
-  sz = (sz&&(SIZE_MAX>=(uint64_t)sz)) ? sz : 1;
-
-  char *const buf = kmalloc(sz);
-  resp_open(req, KHTTP_200);
-  for (int64_t i = 0; i < nm; i++) {
-    for (int64_t j = 0; j < sz; j++)
-      #ifndef __linux__
-        buf[j] = 65 + arc4random_uniform(24);
-      #else
-        buf[j] = 65 + (random() % 24);
-      #endif
-    khttp_write(req, buf, sz);
-  }
-  free(buf);
-
 }
 
 /*
@@ -143,7 +109,6 @@ static void sendindex(struct kreq *req){
     khtml_elem(&r, KELEM_BR);
   }
   addlink("/cgi-bin/02-sample.cgi/index.html",    ".cgi/index");
-  addlink("/cgi-bin/02-sample.cgi/senddata.html", ".cgi/senddata");
   khtml_elem(&r, KELEM_BR);
 
   khtml_puts(&r, "Welcome!");
