@@ -26,7 +26,6 @@ enum page {
  */
 enum key {
   KEY_INTEGER, 
-  KEY_FILE,
   KEY_PAGECOUNT,
   KEY_PAGESIZE,
   KEY__MAX
@@ -47,7 +46,6 @@ static const disp disps[PAGE__MAX] = {
 
 static const struct kvalid keys[KEY__MAX] = {
   { kvalid_int, "integer" }, // KEY_INTEGER
-  { NULL, "file" },          // KEY_FILE
   { kvalid_uint, "count" },  // KEY_PAGECOUNT
   { kvalid_uint, "size" },   // KEY_PAGESIZE
 };
@@ -92,75 +90,72 @@ static void sendindex(struct kreq *req){
 
   struct khtmlreq r={};
   resp_open(req, KHTTP_200);
-  khtml_open(&r, req, 0);
-  khtml_elem(&r, KELEM_DOCTYPE);
-  khtml_elem(&r, KELEM_HTML);
-  khtml_elem(&r, KELEM_HEAD);
-  khtml_elem(&r, KELEM_TITLE);
-  khtml_puts(&r, "Welcome!");
-  khtml_closeelem(&r, 2);
-  khtml_elem(&r, KELEM_BODY);
-  khtml_elem(&r, KELEM_BR);
+  khtml_open(&r, req, 0);{
 
-  void addlink(const char *const href, const char *const label){
-    assert(KCGI_OK==khtml_attr(&r, KELEM_A, KATTR_HREF, href, KATTR__MAX));
-    assert(KCGI_OK==khtml_puts(&r, label));
-    assert(KCGI_OK==khtml_closeelem(&r, 1));
-    khtml_elem(&r, KELEM_BR);
+    khtml_elem(&r, KELEM_DOCTYPE);
+
+    khtml_elem(&r, KELEM_HTML);
+
+    khtml_elem(&r, KELEM_HEAD);{
+      khtml_elem(&r, KELEM_TITLE);{
+        khtml_puts(&r, "Welcome!");
+        khtml_closeelem(&r, 2);
+      }
+    }
+
+    khtml_elem(&r, KELEM_BODY);{
+
+      khtml_elem(&r, KELEM_BR);
+
+      void addlink(const char *const href, const char *const label){
+        assert(KCGI_OK==khtml_attr(&r, KELEM_A, KATTR_HREF, href, KATTR__MAX));
+        assert(KCGI_OK==khtml_puts(&r, label));
+        assert(KCGI_OK==khtml_closeelem(&r, 1));
+        khtml_elem(&r, KELEM_BR);
+      }
+      addlink("/cgi-bin/02-sample.cgi/index.html", ".cgi/index");
+      khtml_elem(&r, KELEM_BR);
+
+      khtml_puts(&r, "Welcome!");
+      khtml_elem(&r, KELEM_BR);
+      khtml_elem(&r, KELEM_BR);
+
+      khtml_attr(&r, KELEM_FORM,
+        KATTR_METHOD, "post",
+        KATTR_ENCTYPE, "multipart/form-data",
+        KATTR_ACTION, page,
+        KATTR__MAX);
+      khtml_elem(&r, KELEM_FIELDSET);
+      khtml_elem(&r, KELEM_LEGEND); khtml_puts(&r, "Post (multipart)"); khtml_closeelem(&r, 1);
+
+      khtml_elem(&r, KELEM_P);{
+
+        khtml_attr(&r, KELEM_INPUT,
+          KATTR_TYPE, "number",
+          KATTR_NAME, keys[KEY_INTEGER].name,
+          KATTR_VALUE, cp, KATTR__MAX
+        );
+        khtml_closeelem(&r, 1);
+
+        if(req->fieldmap[KEY_INTEGER]){
+          khtml_puts(&r, "incr: ");
+          khtml_printf(&r, "%d", 1+atoi(req->fieldmap[KEY_INTEGER]->val));
+          // khtml_puts(&r, "");
+        }
+
+      }
+
+      khtml_elem(&r, KELEM_P);{
+        khtml_attr(&r, KELEM_INPUT,
+          KATTR_TYPE, "submit",
+          KATTR__MAX);
+        khtml_closeelem(&r, 0);
+      }
+
+    }
+
+    khtml_close(&r);
   }
-  addlink("/cgi-bin/02-sample.cgi/index.html",    ".cgi/index");
-  khtml_elem(&r, KELEM_BR);
-
-  khtml_puts(&r, "Welcome!");
-
-  khtml_attr(&r, KELEM_FORM,
-    KATTR_METHOD, "post",
-    KATTR_ENCTYPE, "multipart/form-data",
-    KATTR_ACTION, page,
-    KATTR__MAX);
-  khtml_elem(&r, KELEM_FIELDSET);
-  khtml_elem(&r, KELEM_LEGEND);
-  khtml_puts(&r, "Post (multipart)");
-  khtml_closeelem(&r, 1);
-  khtml_elem(&r, KELEM_P);
-  khtml_attr(&r, KELEM_INPUT,
-    KATTR_TYPE, "number",
-    KATTR_NAME, keys[KEY_INTEGER].name,
-    KATTR_VALUE, cp, KATTR__MAX);
-  khtml_closeelem(&r, 1);
-  khtml_elem(&r, KELEM_P);
-  khtml_attr(&r, KELEM_INPUT,
-    KATTR_TYPE, "file",
-    KATTR_MULTIPLE, "",
-    KATTR_NAME, keys[KEY_FILE].name,
-    KATTR__MAX);
-
-  if (NULL != req->fieldmap[KEY_INTEGER]) {
-    // khtml_puts(&r, "integer: ");
-    // khtml_puts(&r, req->fieldmap[KEY_INTEGER]->val);
-    khtml_puts(&r, "incr: ");
-    khtml_printf(&r, "%d", 1+atoi(req->fieldmap[KEY_INTEGER]->val));
-    khtml_puts(&r, " ");
-  }
-  if (NULL != req->fieldmap[KEY_FILE]) {
-    if (NULL != req->fieldmap[KEY_FILE]->file) {
-      khtml_puts(&r, "file: ");
-      khtml_puts(&r, req->fieldmap[KEY_FILE]->file);
-      khtml_puts(&r, " ");
-    } 
-    if (NULL != req->fieldmap[KEY_FILE]->ctype) {
-      khtml_puts(&r, "ctype: ");
-      khtml_puts(&r, req->fieldmap[KEY_FILE]->ctype);
-    } 
-  }
-
-  khtml_closeelem(&r, 1);
-  khtml_elem(&r, KELEM_P);
-  khtml_attr(&r, KELEM_INPUT,
-    KATTR_TYPE, "submit",
-    KATTR__MAX);
-  khtml_closeelem(&r, 0);
-  khtml_close(&r);
 
   free(page); page=NULL;
 
