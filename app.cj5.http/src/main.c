@@ -7,6 +7,7 @@
 #include <stdlib.h> // free EXIT_FAILURE
 #include <string.h> // memset
 #include <stdio.h> // fprintf(stderr, ...)
+#include <stdbool.h>
 
 // include.kcgi.requirements
 #include <stdarg.h>
@@ -25,12 +26,12 @@ enum page {
 };
 
 /*
- * All of the keys (input field names) we accept. 
+ * All of the keys (input field names) we accept.
  * The key names are in the "keys" array.
  * See sendindex() for how these are used.
  */
 enum key {
-  KEY_INTEGER, 
+  KEY_INTEGER,
   KEY__MAX
 };
 
@@ -38,7 +39,7 @@ static const struct kvalid keys[KEY__MAX] = {
   { kvalid_int, "rvkjm9pqcg8o3" }, // KEY_INTEGER
 };
 
-/* 
+/*
  * Page names (as in the URL component) mapped from the first name part
  * of requests, e.g., /sample.cgi/defpage.html -> defpage -> PAGE_DEFPAGE.
  */
@@ -169,39 +170,62 @@ static void (*const disps[PAGE__MAX])(struct kreq*) = {
 // env MANPAGER="less -R +% -J -j.5 -p 'char \*ctype'" man khttp_parse.3
 void inspect_kpair(const struct kpair *const p){
   assert(p);
-  assert(!p->keypos); // fprintf(stderr, "keypos=%zu ", p->keypos);
+  assert(KEY_INTEGER==p->keypos); // fprintf(stderr, "keypos=%zu ", p->keypos);
   assert(0==strcmp("rvkjm9pqcg8o3", p->key)); // fprintf(stderr, "key=%s ", p->key);
   assert(!p->next); // fprintf(stderr, "next@%p ", p->next);
   {
     assert(KPAIR_INTEGER==p->type); // fprintf(stderr, "type=%d ", p->type);
+    assert(KMIME_TEXT_PLAIN==p->ctypepos); // fprintf(stderr, "ctypepos=%zu ", p->ctypepos);
     assert(0==strcmp("text/plain", p->ctype)); // fprintf(stderr, "ctype=%s ", p->ctype);
     assert(KPAIR_VALID==p->state); // fprintf(stderr, "state=%d ", p->state);
+
     assert(p->valsz==strlen(p->val)); // fprintf(stderr, "valsz=%zu ", p->valsz);
     fprintf(stderr, "val='%s' ", p->val);
     fprintf(stderr, "parsed=%ld ", p->parsed.i);
+    fprintf(stderr, "\n");
+
+    for(size_t i=0; i<p->valsz; ++i)
+      fprintf(stderr, "   %c ", p->val[i]);
+    fprintf(stderr, "\n");
+    for(size_t i=0; i<p->valsz; ++i)
+      fprintf(stderr, "0x%02X ", p->val[i]);
+    fprintf(stderr, "\n");
+
   }
-  fprintf(stderr, "file@%p ", p->file);
-  assert(14==p->ctypepos); // fprintf(stderr, "ctypepos=%zu ", p->ctypepos);
-  fprintf(stderr, "xcode@%p ", p->xcode);
+  assert(p->file&&!(p->file[0])); // fprintf(stderr, "file@%p ", p->file);
+  // MIME content transfer encoding (e.g. base64)
+  assert(p->xcode&&!(p->xcode[0])); // fprintf(stderr, "xcode@%p ", p->xcode);
   fprintf(stderr, "\n");
 }
 
 void inspect_kreq(const struct kreq *const r){
 
-  // private application data
+  // misc
   assert(!r->arg);
+  assert(r->kdata);
+  assert(keys==r->keys);
+  assert(KEY__MAX==r->keysz);
+  assert(KMIME_TEXT_HTML==r->mime);
 
-  // auto
+  // tcp
+  fprintf(stderr, ": HTTP_HOST=%s\n", r->host);
+  fprintf(stderr, ": REMOTE_ADDR=%s\n", r->remote);
+  assert(80u==r->port); // fprintf(stderr, ": SERVER_PORT=%u\n", r->port);
+
+  // authentication
   assert(KAUTH_NONE==r->auth);
+  assert(0==memcmp(&(struct khttpauth){}, &(r->rawauth), sizeof(struct khttpauth)));
 
-  // cookie
-  assert(r->cookiemap); assert(r->cookienmap);
-  for(int i=0; i<KEY__MAX; ++i){
-    assert(!r->cookiemap[i]); assert(!r->cookienmap[i]);
+  // request headers
+  assert(KSCHEME_HTTP==r->scheme);
+  assert(r->suffix&&!(r->suffix[0])); // fprintf(stderr, ": suffix@%p\n", r->suffix);
+  assert(3<=r->reqsz); // fprintf(stderr, ": reqsz=%zu\n", r->reqsz);
+  for(size_t i=0; i<r->reqsz; ++i){
+    fprintf(stderr, "*%26s = %s\n", r->reqs[i].key, r->reqs[i].val);
   }
-  assert(!r->cookies);
-  assert(!r->cookiesz);
 
+  // POST/GET request
+  assert(KMETHOD_OPTIONS==r->method||KMETHOD_GET==r->method||KMETHOD_POST==r->method);
   assert(r->fieldnmap);
   assert(r->fieldmap);
   size_t cur=0;
@@ -218,46 +242,34 @@ void inspect_kreq(const struct kreq *const r){
   }
   assert(r->fieldsz==cur);
 
-  assert(0==strcmp("/defpage", r->fullpath)); // fprintf(stderr, ": PATH_INFO=%s\n", r->fullpath);
-  fprintf(stderr, ": HTTP_HOST=%s\n", r->host);
-
-  assert(r->kdata);
-
-  assert(keys==r->keys);
-  assert(KEY__MAX==r->keysz);
-
-  // assert(KMETHOD_GET==r->method);
-
-  assert(KMIME_TEXT_HTML==r->mime);
-
+  // path
   assert(PAGE_DEFPAGE==r->page);
-  assert(0==strcmp("defpage", r->pagename)); // fprintf(stderr, ": pagename=%s\n", r->pagename);
+  assert(r->pname&&0==strcmp("/cgi-bin/cj5.cgi", r->pname)); // fprintf(stderr, ": SCRIPT_NAME='%s'\n", r->pname);
+  assert(r->pagename&&); // fprintf(stderr, ": pagename='%s'\n", r->pagename);
+  assert(r->fullpath&&); // fprintf(stderr, ": PATH_INFO='%s'\n", r->fullpath);
+  assert(r->pagename&&r->fullpath);
+  assert(
+    (!(r->pagename[0])&&!(r->fullpath[0])) ||
+    0==strcmp("defpage", r->pagename)&&0==strcmp("/defpage", r->fullpath) ||
+  false);
 
-  assert(0==strcmp("/cgi-bin/cj5.cgi", r->pname)); // fprintf(stderr, ": SCRIPT_NAME=%s\n", r->pname);
-
-  assert(80u==r->port); // fprintf(stderr, ": SERVER_PORT=%u\n", r->port);
-
-  assert(0==memcmp(&(struct khttpauth){}, &(r->rawauth), sizeof(struct khttpauth)));
-
-  fprintf(stderr, ": REMOTE_ADDR=%s\n", r->remote);
-
-  fprintf(stderr, ": reqsz=%zu\n", r->reqsz);
-  for(size_t i=0; i<r->reqsz; ++i){
-    fprintf(stderr, "*%26s = %s\n", r->reqs[i].key, r->reqs[i].val);
+  // cookie
+  assert(!r->cookies);
+  assert(!r->cookiesz);
+  assert(r->cookiemap); assert(r->cookienmap);
+  for(int i=0; i<KEY__MAX; ++i){
+    assert(!r->cookiemap[i]); assert(!r->cookienmap[i]);
   }
-  assert(KSCHEME_HTTP==r->scheme);
-  fprintf(stderr, ": suffix@%p\n", r->suffix);
-
-  // env MANPAGER="less -R +% -J -j.5 -p 'char \*ctype'" man khttp_parse.3
-  // ...
 
 }
 
 int main(){
 
-  struct kreq req={};
-  // req.port=9513u;
-  // main HTTP context.
+  fprintf(stderr, ": main.c\n");
+
+  struct kreq req={/*.port=9513u*/};
+
+  // main http context
   assert(KCGI_OK==khttp_parse(
     &req,                          // input fields and HTTP context parsed from the CGI environment
     keys, KEY__MAX,                // input and validation fields
@@ -287,6 +299,9 @@ int main(){
   }
 
   khttp_free(&req); req=(struct kreq){};
+
+  fprintf(stderr, "\n");
+  fprintf(stderr, "\n");
 
   return 0;
 

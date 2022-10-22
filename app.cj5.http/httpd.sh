@@ -22,7 +22,9 @@
 
   cd "$SRV"
 
-  echo "http://$IPP/cgi-bin/cj5.cgi/defpage"
+  echo "http://$IPP/cgi-bin/cj5.cgi         (200, implicit)"
+  echo "http://$IPP/cgi-bin/cj5.cgi/        (404, cgi not called at all)"
+  echo "http://$IPP/cgi-bin/cj5.cgi/defpage (200, explicit)"
   echo
 
   echo "${CMD[*]}"
