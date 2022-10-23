@@ -24,9 +24,10 @@
 #include <kcgihtml.h>
 
 #define RPK 5
+#define DB "../Cangjie5.gdbm"
+
 // fullwidth space
 #define SEP "\u3000"
-#define DB "/home/darren/cangjie/app.cj5.mkdict/Cangjie5.gdbm"
 
 GDBM_FILE dbf=NULL;
 
@@ -279,6 +280,10 @@ static void (*const disps[PAGE__MAX])(struct kreq*) = {
 };
 
 int main(){
+
+  char *pwd=get_current_dir_name();
+  fprintf(stderr, "%s\n", pwd);
+  free(pwd); pwd=NULL;
 
   // fprintf(stderr, "\n");
   // fprintf(stderr, ": main.c\n");

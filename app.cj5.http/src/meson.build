@@ -13,7 +13,7 @@ project('cj5.cgi', 'c',
     'c_std=gnu17',
   ],
   license: 'AGPL-3.0',
-  meson_version: '>=0.63.3',
+  meson_version: '>=0.62.1', # postmarketOS v22.06
   version: '0.1',
 )
 
@@ -30,14 +30,16 @@ add_global_arguments('-D_GNU_SOURCE',
                      '-Wno-error=unused-variable',
                      language: 'c')
 
+CC=meson.get_compiler('c')
+
 executable(meson.project_name(),
   'main.c',
-  # '/home/darren/cangjie/app.cj5.lookup/l2r.c',
   dependencies: [
+    # (run_command('uname', '-m').stdout()=='x86_64' ? dependency('kcgi')      : CC.find_library('kcgi',     required : true)),
+    # (run_command('uname', '-m').stdout()=='x86_64' ? dependency('kcgi-html') : CC.find_library('kcgihtml', required : true)),
     dependency('kcgi'),
     dependency('kcgi-html'),
-    # https://github.com/mesonbuild/meson/issues/4297
-    meson.get_compiler('c').find_library('gdbm', required : true)
+    CC.find_library('gdbm', required : true), # https://github.com/mesonbuild/meson/issues/4297
   ],
   install: true,
 )

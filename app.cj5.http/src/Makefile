@@ -1,6 +1,6 @@
 ################################################################################
 
-O:=builddir
+O:=builddir.$(shell uname -m)
 # 'meson compile' can also accept TARGET(s)
 # B:=meson compile -v -C $(O)
 B:=ninja -j4 -v -C $(O)
@@ -9,13 +9,13 @@ OUT?=/dev/stdout
 
 ################################################################################
 
-default: 1_install
+default: 0_build
 
 entr:
 	@printf "\e]0;%s\a" "app.jc5.http (make)"
 # 	https://stackoverflow.com/a/16595367/
-# 	@find . -not \( -path ./builddir -prune \) -type f -name '*.c' -o -name '*.h'
-	@find . -not \( -path ./builddir -prune \) -type f -name '*.c' -o -name '*.h' | entr $(MAKE) 1_install
+# 	@find . -not \( -path $(O) -prune \) -type f -name '*.c' -o -name '*.h'
+	@find . -not \( -path $(O) -prune \) -type f -name '*.c' -o -name '*.h' | entr $(MAKE) 1_install
 
 cscope:
 	@echo "usage: make cscope ID=<identifier>"
@@ -42,7 +42,7 @@ cscope:
 
 # setup
 $(O):
-	@echo "/Makefile --> /meson.build --> /builddir/build.ninja"
+	@echo "/Makefile --> /meson.build --> /$(O)/build.ninja"
 	@rm -rf $(O)
 	meson setup $(O) .
 
