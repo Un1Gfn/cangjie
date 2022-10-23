@@ -59,12 +59,10 @@ static void resp_open(struct kreq *const req, enum khttp http){
    * know what it is.
    * Default to an octet-stream response.
    */
-  enum kmime mime = (KMIME__MAX==req->mime) ? KMIME_APP_OCTET_STREAM : req->mime;
   khttp_head(req, kresps[KRESP_STATUS], "%s", khttps[http]);
-  khttp_head(req, kresps[KRESP_CONTENT_TYPE], "%s", kmimetypes[mime]);
+  khttp_head(req, kresps[KRESP_CONTENT_TYPE], "%s", kmimetypes[(KMIME__MAX==req->mime) ? KMIME_APP_OCTET_STREAM : req->mime]);
   khttp_body(req);
 }
-
 
 // <a href="$h">$l</a>
 static void khtml_attr_a_2(struct khtmlreq *const r, const char *const h, const char *const l){
@@ -190,6 +188,7 @@ void inspect_kpair(const struct kpair *const p){
     fprintf(stderr, "\n");
     for(size_t i=0; i<p->valsz; ++i)
       fprintf(stderr, "0x%02X ", p->val[i]);
+    fprintf(stderr, "\n");
 
   }
 
@@ -225,19 +224,24 @@ void inspect_kreq(const struct kreq *const r){
   assert(KMETHOD_OPTIONS==r->method||KMETHOD_GET==r->method||KMETHOD_POST==r->method);
   assert(r->fieldnmap);
   assert(r->fieldmap);
-  size_t cur=0;
+  size_t Nvalid=0;
+  size_t Ninvalid=0;
   for(int i=0; i<KEY__MAX; ++i){
-    assert(!r->fieldnmap[i]);
-    fprintf(stderr, ": [%d] %s ", i, "fieldmap");
+    fprintf(stderr, ": fieldmap[%d] ", i);
     if(r->fieldmap[i]){
       inspect_kpair(r->fieldmap[i]);
-      assert(r->fieldsz>cur);
-      assert(r->fieldmap[i]==&(r->fields[cur++])); // QUERY_STRING r->fields r->fieldsz ?
+      assert(r->fieldsz>Nvalid);
+      assert(r->fieldmap[i]==&(r->fields[Nvalid++])); // QUERY_STRING r->fields r->fieldsz ?
+      assert(!r->fieldnmap[i]);
     }else{
       fprintf(stderr, "NULL\n");
+      if(r->fieldnmap[i]){
+        assert(r->fieldnmap[i] && KPAIR_INVALID==r->fieldnmap[i]->state);
+        ++Ninvalid;
+      }
     }
   }
-  assert(r->fieldsz==cur);
+  assert(r->fieldsz==Nvalid+Ninvalid);
 
   // path
   assert(PAGE_DEFPAGE==r->page);
@@ -279,7 +283,7 @@ int main(){
 
   // accept HTTP method GET/POST/OPTIONS only
   switch(req.method){
-    case KMETHOD_OPTIONS:
+    case KMETHOD_OPTIONS: // curl -vX OPTIONS
       khttp_head(&req, kresps[KRESP_ALLOW], "OPTIONS GET POST");
       resp_open(&req, KHTTP_200); // 200 OK
       break;
