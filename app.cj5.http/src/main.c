@@ -22,29 +22,25 @@
 /* Recognised page requests.  See pages[]. */
 enum page {
   PAGE_DEFPAGE,
-  PAGE__MAX
+  PAGE__MAX,
 };
 
-/*
- * All of the keys (input field names) we accept.
- * The key names are in the "keys" array.
- * See sendindex() for how these are used.
- */
+// page names in URL component, mapped from the first name part of requests
+// e.g., "/sample.cgi/defpage.html" -> "defpage" -> PAGE_DEFPAGE.
+static const char *const pages[PAGE__MAX] = {
+  "defpage", // PAGE_DEFPAGE
+};
+
+// keys - input field names
 enum key {
   KEY_INTEGER,
-  KEY__MAX
+  KEY_STRING,
+  KEY__MAX,
 };
 
 static const struct kvalid keys[KEY__MAX] = {
   { kvalid_int, "rvkjm9pqcg8o3" }, // KEY_INTEGER
-};
-
-/*
- * Page names (as in the URL component) mapped from the first name part
- * of requests, e.g., /sample.cgi/defpage.html -> defpage -> PAGE_DEFPAGE.
- */
-static const char *const pages[PAGE__MAX] = {
-  "defpage", // PAGE_DEFPAGE
+  { kvalid_stringne, "hjxrgq9ig35lz" }, // KEY_STRING
 };
 
 /*
@@ -59,17 +55,18 @@ static void resp_open(struct kreq *const req, enum khttp http){
    * know what it is.
    * Default to an octet-stream response.
    */
-  khttp_head(req, kresps[KRESP_STATUS], "%s", khttps[http]);
-  khttp_head(req, kresps[KRESP_CONTENT_TYPE], "%s", kmimetypes[(KMIME__MAX==req->mime) ? KMIME_APP_OCTET_STREAM : req->mime]);
-  khttp_body(req);
+  assert(KCGI_OK==khttp_head(req, kresps[KRESP_STATUS], "%s", khttps[http]));
+  assert(KCGI_OK==khttp_head(req, kresps[KRESP_CONTENT_TYPE], "%s", kmimetypes[(KMIME__MAX==req->mime) ? KMIME_APP_OCTET_STREAM : req->mime]));
+  // plain
+  assert(KCGI_OK==khttp_body(req));
+  // assert(KCGI_OK==khttp_body_compress(req, 0));
+  // compressed
+  // assert(KCGI_OK==http_head(req, KRESP_CONTENT_ENCODING, "..."))
+  // assert(KCGI_OK==khttp_body_compress(req, 1));
 }
 
-// <a href="$h">$l</a>
-static void khtml_attr_a_2(struct khtmlreq *const r, const char *const h, const char *const l){
-  assert(KCGI_OK==khtml_attr(r, KELEM_A, KATTR_HREF, h, KATTR__MAX));
-  assert(KCGI_OK==khtml_puts(r, l));
-  assert(KCGI_OK==khtml_closeelem(r, 1));
-  khtml_elem(r, KELEM_BR);
+static void lookup(struct khtmlreq *const rp, const char *const s){
+  khtml_printf(rp, "'%s'", s);
 }
 
 /*
@@ -89,17 +86,14 @@ static void sendindex(struct kreq *req){
 
     khtml_elem(&r, KELEM_HEAD); {
       khtml_elem(&r, KELEM_TITLE); khtml_puts(&r, "Welcome!"); khtml_closeelem(&r, 1);
+      khtml_attr(&r, KELEM_META, KATTR_CHARSET, "utf-8", KATTR__MAX); // <meta charset="utf-8">
     }; khtml_closeelem(&r, 1); // </head>
 
     khtml_elem(&r, KELEM_BODY); {
 
       khtml_elem(&r, KELEM_BR);
 
-      khtml_attr_a_2(&r, "/cgi-bin/cj5.cgi/defpage", "clear");
-      khtml_elem(&r, KELEM_BR);
-
-      khtml_puts(&r, "Welcome!");
-      khtml_elem(&r, KELEM_BR);
+      khtml_puts(&r, "Welcome!");khtml_elem(&r, KELEM_BR);
       khtml_elem(&r, KELEM_BR);
 
       char *page=NULL;
@@ -117,25 +111,55 @@ static void sendindex(struct kreq *req){
 
           khtml_elem(&r, KELEM_LEGEND); khtml_puts(&r, "Post (multipart)"); khtml_closeelem(&r, 1);
 
+          // p.input.buttons
+          khtml_elem(&r, KELEM_P);
+
+            assert(KCGI_OK==khtml_attr(&r, KELEM_A, KATTR_HREF, "/cgi-bin/cj5.cgi/defpage", KATTR__MAX));
+              // khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "button", KATTR_VALUE, "\U0001F5D1", KATTR__MAX);
+              khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "button", KATTR_VALUE, "\u274C", KATTR__MAX);
+            assert(KCGI_OK==khtml_closeelem(&r, 1));
+            // a(&r, "/cgi-bin/cj5.cgi/defpage", "\u232B");
+            // a(&r, "/cgi-bin/cj5.cgi/defpage", "\U0001F5D1");
+
+            khtml_puts(&r, " ");
+            // https://www.compart.com/en/unicode/block/U+2190
+            // https://unicode-table.com/en/blocks/arrows/
+            // khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "reset", KATTR_VALUE, "\u27F3", KATTR__MAX);
+            khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "reset", KATTR_VALUE, "\u21BA", KATTR__MAX);
+            // khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "reset", KATTR_VALUE, "\u21A9", KATTR__MAX);
+            khtml_puts(&r, " ");
+            khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "submit", KATTR_VALUE, "\U0001F50E", KATTR__MAX);
+            // khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "submit", KATTR_VALUE, "\xF0\x9F\x94\x8E", KATTR__MAX);
+          khtml_closeelem(&r, 1);
+
+          // p.input.cj5
+          khtml_elem(&r, KELEM_P); {
+            struct kpair *const p=req->fieldmap[KEY_STRING];
+            khtml_attr(&r, KELEM_INPUT,
+              KATTR_TYPE, "search", // "text"
+              KATTR_NAME, keys[KEY_STRING].name,
+              KATTR_VALUE, p?p->val:"", // default value for input.reset
+            KATTR__MAX);
+            if(p){
+              khtml_puts(&r, " result: ");
+              assert(p->val && p->val==p->parsed.s);
+              const size_t n=strnlen(p->val, 1024*8); assert(n<1024*8); assert(p->val[n-1]&&!p->val[n]);
+              lookup(&r, p->val);
+            }
+          }; khtml_closeelem(&r, 1);
+
+          // p.input.incr
           khtml_elem(&r, KELEM_P); {
             khtml_attr(&r, KELEM_INPUT,
               KATTR_TYPE, "number",
               KATTR_NAME, keys[KEY_INTEGER].name,
-              KATTR_VALUE, (req->fieldmap[KEY_INTEGER] ? req->fieldmap[KEY_INTEGER]->val : ""), KATTR__MAX
-            );
+              KATTR_VALUE, (req->fieldmap[KEY_INTEGER] ? req->fieldmap[KEY_INTEGER]->val : ""), // default value for input.reset
+            KATTR__MAX);
             if(req->fieldmap[KEY_INTEGER]){
               khtml_puts(&r, " incr: ");
               khtml_printf(&r, "%ld", 1+req->fieldmap[KEY_INTEGER]->parsed.i);
             }
-            khtml_closeelem(&r, 1);
-          }
-
-          khtml_elem(&r, KELEM_P); {
-            khtml_attr(&r, KELEM_INPUT,
-              KATTR_TYPE, "submit",
-              KATTR__MAX);
-            khtml_closeelem(&r, 1);
-          }
+          }; khtml_closeelem(&r, 1);
 
         }; khtml_closeelem(&r, 1); // </fieldset>
 
@@ -159,115 +183,10 @@ static void (*const disps[PAGE__MAX])(struct kreq*) = {
   sendindex, // PAGE_DEFPAGE
 };
 
-// struct kpair defined in /usr/include/kcgi.h
-// env MANPAGER="less -R +% -J -j.5 -p 'char \*ctype'" man khttp_parse.3
-void inspect_kpair(const struct kpair *const p){
-
-  assert(p&&!p->next); // fprintf(stderr, "next@%p ", p->next);
-  assert(KEY_INTEGER==p->keypos); // fprintf(stderr, "keypos=%zu ", p->keypos);
-  assert(0==strcmp("rvkjm9pqcg8o3", p->key)); // fprintf(stderr, "key=%s ", p->key);
-
-  // MIME content transfer encoding (e.g. base64)
-  assert(p->xcode&&!(p->xcode[0])); // fprintf(stderr, "xcode@%p ", p->xcode);
-  assert(p->file&&!(p->file[0])); // fprintf(stderr, "file@%p ", p->file);
-
-  {
-
-    assert(KPAIR_INTEGER==p->type); // fprintf(stderr, "type=%d ", p->type);
-    assert(KMIME_TEXT_PLAIN==p->ctypepos); // fprintf(stderr, "ctypepos=%zu ", p->ctypepos);
-    assert(0==strcmp("text/plain", p->ctype)); // fprintf(stderr, "ctype=%s ", p->ctype);
-    assert(KPAIR_VALID==p->state); // fprintf(stderr, "state=%d ", p->state);
-
-    assert(p->valsz==strlen(p->val)); // fprintf(stderr, "valsz=%zu ", p->valsz);
-    fprintf(stderr, "val='%s' ", p->val);
-    fprintf(stderr, "parsed=%ld ", p->parsed.i);
-    fprintf(stderr, "\n");
-
-    for(size_t i=0; i<p->valsz; ++i)
-      fprintf(stderr, "   %c ", p->val[i]);
-    fprintf(stderr, "\n");
-    for(size_t i=0; i<p->valsz; ++i)
-      fprintf(stderr, "0x%02X ", p->val[i]);
-    fprintf(stderr, "\n");
-
-  }
-
-}
-
-void inspect_kreq(const struct kreq *const r){
-
-  // misc
-  assert(!r->arg);
-  assert(r->kdata);
-  assert(keys==r->keys);
-  assert(KEY__MAX==r->keysz);
-  assert(KMIME_TEXT_HTML==r->mime);
-
-  // tcp
-  fprintf(stderr, ": HTTP_HOST=%s\n", r->host);
-  fprintf(stderr, ": REMOTE_ADDR=%s\n", r->remote);
-  assert(80u==r->port); // fprintf(stderr, ": SERVER_PORT=%u\n", r->port);
-
-  // authentication
-  assert(KAUTH_NONE==r->auth);
-  assert(0==memcmp(&(struct khttpauth){}, &(r->rawauth), sizeof(struct khttpauth)));
-
-  // request headers
-  assert(KSCHEME_HTTP==r->scheme);
-  assert(r->suffix&&!(r->suffix[0])); // fprintf(stderr, ": suffix@%p\n", r->suffix);
-  assert(3<=r->reqsz); // fprintf(stderr, ": reqsz=%zu\n", r->reqsz);
-  for(size_t i=0; i<r->reqsz; ++i){
-    fprintf(stderr, "*%26s = %s\n", r->reqs[i].key, r->reqs[i].val);
-  }
-
-  // POST/GET request
-  assert(KMETHOD_OPTIONS==r->method||KMETHOD_GET==r->method||KMETHOD_POST==r->method);
-  assert(r->fieldnmap);
-  assert(r->fieldmap);
-  size_t Nvalid=0;
-  size_t Ninvalid=0;
-  for(int i=0; i<KEY__MAX; ++i){
-    fprintf(stderr, ": fieldmap[%d] ", i);
-    if(r->fieldmap[i]){
-      inspect_kpair(r->fieldmap[i]);
-      assert(r->fieldsz>Nvalid);
-      assert(r->fieldmap[i]==&(r->fields[Nvalid++])); // QUERY_STRING r->fields r->fieldsz ?
-      assert(!r->fieldnmap[i]);
-    }else{
-      fprintf(stderr, "NULL\n");
-      if(r->fieldnmap[i]){
-        assert(r->fieldnmap[i] && KPAIR_INVALID==r->fieldnmap[i]->state);
-        ++Ninvalid;
-      }
-    }
-  }
-  assert(r->fieldsz==Nvalid+Ninvalid);
-
-  // path
-  assert(PAGE_DEFPAGE==r->page);
-  assert(r->pname&&0==strcmp("/cgi-bin/cj5.cgi", r->pname)); // fprintf(stderr, ": SCRIPT_NAME='%s'\n", r->pname);
-  assert(r->pagename); // fprintf(stderr, ": pagename='%s'\n", r->pagename);
-  assert(r->fullpath); // fprintf(stderr, ": PATH_INFO='%s'\n", r->fullpath);
-  assert(r->pagename&&r->fullpath);
-  assert(
-    ((!(r->pagename[0])&&!(r->fullpath[0]))) ||
-    (0==strcmp("defpage", r->pagename)&&0==strcmp("/defpage", r->fullpath)) ||
-  false);
-
-  // cookie
-  assert(!r->cookies);
-  assert(!r->cookiesz);
-  assert(r->cookiemap); assert(r->cookienmap);
-  for(int i=0; i<KEY__MAX; ++i){
-    assert(!r->cookiemap[i]); assert(!r->cookienmap[i]);
-  }
-
-}
-
 int main(){
 
-  fprintf(stderr, "\n");
-  fprintf(stderr, ": main.c\n");
+  // fprintf(stderr, "\n");
+  // fprintf(stderr, ": main.c\n");
 
   struct kreq req={/*.port=9513u*/};
 
@@ -279,7 +198,7 @@ int main(){
   ));
   // req.port=9513u;
 
-  inspect_kreq(&req);
+  // inspect_kreq(&req);
 
   // accept HTTP method GET/POST/OPTIONS only
   switch(req.method){
