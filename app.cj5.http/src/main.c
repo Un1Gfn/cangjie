@@ -65,6 +65,15 @@ static void resp_open(struct kreq *const req, enum khttp http){
   khttp_body(req);
 }
 
+
+// <a href="$h">$l</a>
+static void khtml_attr_a_2(struct khtmlreq *const r, const char *const h, const char *const l){
+  assert(KCGI_OK==khtml_attr(r, KELEM_A, KATTR_HREF, h, KATTR__MAX));
+  assert(KCGI_OK==khtml_puts(r, l));
+  assert(KCGI_OK==khtml_closeelem(r, 1));
+  khtml_elem(r, KELEM_BR);
+}
+
 /*
  * Demonstrates how to use GET and POST forms and building with the HTML
  * builder functions.
@@ -72,49 +81,45 @@ static void resp_open(struct kreq *const req, enum khttp http){
  */
 static void sendindex(struct kreq *req){
 
-  char *page=NULL;
-  kasprintf(&page, "%s/%s", req->pname, pages[PAGE_DEFPAGE]);
-
   struct khtmlreq r={};
-  resp_open(req, KHTTP_200);
+
   khtml_open(&r, req, 0);
+
   khtml_elem(&r, KELEM_DOCTYPE);
-  khtml_elem(&r, KELEM_HTML);{
+  
+  khtml_elem(&r, KELEM_HTML); {
 
-    khtml_elem(&r, KELEM_HEAD);{
+    khtml_elem(&r, KELEM_HEAD); {
       khtml_elem(&r, KELEM_TITLE); khtml_puts(&r, "Welcome!"); khtml_closeelem(&r, 1);
-      khtml_closeelem(&r, 1);
-    } // </head>
+    }; khtml_closeelem(&r, 1); // </head>
 
-    khtml_elem(&r, KELEM_BODY);{
+    khtml_elem(&r, KELEM_BODY); {
 
       khtml_elem(&r, KELEM_BR);
 
-      void addlink(const char *const href, const char *const label){
-        assert(KCGI_OK==khtml_attr(&r, KELEM_A, KATTR_HREF, href, KATTR__MAX));
-        assert(KCGI_OK==khtml_puts(&r, label));
-        assert(KCGI_OK==khtml_closeelem(&r, 1));
-        khtml_elem(&r, KELEM_BR);
-      }
-      addlink("/cgi-bin/cj5.cgi/defpage", "clear");
+      khtml_attr_a_2(&r, "/cgi-bin/cj5.cgi/defpage", "clear");
       khtml_elem(&r, KELEM_BR);
 
       khtml_puts(&r, "Welcome!");
       khtml_elem(&r, KELEM_BR);
       khtml_elem(&r, KELEM_BR);
 
+      char *page=NULL;
+      kasprintf(&page, "%s/%s", req->pname, pages[PAGE_DEFPAGE]);
       khtml_attr(&r, KELEM_FORM,
         KATTR_METHOD, "post",
         KATTR_ENCTYPE, "multipart/form-data",
         KATTR_ACTION, page,
         KATTR__MAX
-      ); {
+      );
+      explicit_bzero(page, 1+strlen(page));
+      free(page); page=NULL; {
 
-        khtml_elem(&r, KELEM_FIELDSET);{
+        khtml_elem(&r, KELEM_FIELDSET); {
 
           khtml_elem(&r, KELEM_LEGEND); khtml_puts(&r, "Post (multipart)"); khtml_closeelem(&r, 1);
 
-          khtml_elem(&r, KELEM_P);{
+          khtml_elem(&r, KELEM_P); {
             khtml_attr(&r, KELEM_INPUT,
               KATTR_TYPE, "number",
               KATTR_NAME, keys[KEY_INTEGER].name,
@@ -127,33 +132,23 @@ static void sendindex(struct kreq *req){
             khtml_closeelem(&r, 1);
           }
 
-          khtml_elem(&r, KELEM_P);{
+          khtml_elem(&r, KELEM_P); {
             khtml_attr(&r, KELEM_INPUT,
               KATTR_TYPE, "submit",
               KATTR__MAX);
             khtml_closeelem(&r, 1);
           }
 
-          khtml_closeelem(&r, 1);
+        }; khtml_closeelem(&r, 1); // </fieldset>
 
-        } // </fieldset>
+      }; khtml_closeelem(&r, 1); // </form>    
 
-        khtml_closeelem(&r, 1);
+    }; khtml_closeelem(&r, 1); // </body>
 
-      } // </form>
-
-      khtml_closeelem(&r, 1);
-
-    } // </body>
-
-    khtml_closeelem(&r, 1);
-
-  } // </html>
+  }; khtml_closeelem(&r, 1); // </html>
 
   assert(0==khtml_elemat(&r));
   khtml_close(&r);
-
-  free(page); page=NULL;
 
 }
 
@@ -169,11 +164,17 @@ static void (*const disps[PAGE__MAX])(struct kreq*) = {
 // struct kpair defined in /usr/include/kcgi.h
 // env MANPAGER="less -R +% -J -j.5 -p 'char \*ctype'" man khttp_parse.3
 void inspect_kpair(const struct kpair *const p){
-  assert(p);
+
+  assert(p&&!p->next); // fprintf(stderr, "next@%p ", p->next);
   assert(KEY_INTEGER==p->keypos); // fprintf(stderr, "keypos=%zu ", p->keypos);
   assert(0==strcmp("rvkjm9pqcg8o3", p->key)); // fprintf(stderr, "key=%s ", p->key);
-  assert(!p->next); // fprintf(stderr, "next@%p ", p->next);
+
+  // MIME content transfer encoding (e.g. base64)
+  assert(p->xcode&&!(p->xcode[0])); // fprintf(stderr, "xcode@%p ", p->xcode);
+  assert(p->file&&!(p->file[0])); // fprintf(stderr, "file@%p ", p->file);
+
   {
+
     assert(KPAIR_INTEGER==p->type); // fprintf(stderr, "type=%d ", p->type);
     assert(KMIME_TEXT_PLAIN==p->ctypepos); // fprintf(stderr, "ctypepos=%zu ", p->ctypepos);
     assert(0==strcmp("text/plain", p->ctype)); // fprintf(stderr, "ctype=%s ", p->ctype);
@@ -189,13 +190,9 @@ void inspect_kpair(const struct kpair *const p){
     fprintf(stderr, "\n");
     for(size_t i=0; i<p->valsz; ++i)
       fprintf(stderr, "0x%02X ", p->val[i]);
-    fprintf(stderr, "\n");
 
   }
-  assert(p->file&&!(p->file[0])); // fprintf(stderr, "file@%p ", p->file);
-  // MIME content transfer encoding (e.g. base64)
-  assert(p->xcode&&!(p->xcode[0])); // fprintf(stderr, "xcode@%p ", p->xcode);
-  fprintf(stderr, "\n");
+
 }
 
 void inspect_kreq(const struct kreq *const r){
@@ -245,12 +242,12 @@ void inspect_kreq(const struct kreq *const r){
   // path
   assert(PAGE_DEFPAGE==r->page);
   assert(r->pname&&0==strcmp("/cgi-bin/cj5.cgi", r->pname)); // fprintf(stderr, ": SCRIPT_NAME='%s'\n", r->pname);
-  assert(r->pagename&&); // fprintf(stderr, ": pagename='%s'\n", r->pagename);
-  assert(r->fullpath&&); // fprintf(stderr, ": PATH_INFO='%s'\n", r->fullpath);
+  assert(r->pagename); // fprintf(stderr, ": pagename='%s'\n", r->pagename);
+  assert(r->fullpath); // fprintf(stderr, ": PATH_INFO='%s'\n", r->fullpath);
   assert(r->pagename&&r->fullpath);
   assert(
-    (!(r->pagename[0])&&!(r->fullpath[0])) ||
-    0==strcmp("defpage", r->pagename)&&0==strcmp("/defpage", r->fullpath) ||
+    ((!(r->pagename[0])&&!(r->fullpath[0]))) ||
+    (0==strcmp("defpage", r->pagename)&&0==strcmp("/defpage", r->fullpath)) ||
   false);
 
   // cookie
@@ -265,11 +262,12 @@ void inspect_kreq(const struct kreq *const r){
 
 int main(){
 
+  fprintf(stderr, "\n");
   fprintf(stderr, ": main.c\n");
 
   struct kreq req={/*.port=9513u*/};
 
-  // main http context
+  // initialize main http context
   assert(KCGI_OK==khttp_parse(
     &req,                          // input fields and HTTP context parsed from the CGI environment
     keys, KEY__MAX,                // input and validation fields
@@ -288,20 +286,20 @@ int main(){
     case KMETHOD_GET:
     case KMETHOD_POST:
       // restrict to text/html and a valid page
-      if(PAGE__MAX <= req.page || KMIME_TEXT_HTML != req.mime)
+      if(PAGE__MAX <= req.page || KMIME_TEXT_HTML != req.mime){
         resp_open(&req, KHTTP_404); // 404 Not Found
-      else
+      }else{
+        resp_open(&req, KHTTP_200);
         (*disps[req.page])(&req); // dispatch array to send to the page handlers
+      }
       break;
     default:
+      fprintf(stderr, "req.method=KMETHOD_ACL+%d\n", req.method-KMETHOD_ACL);
       resp_open(&req, KHTTP_405); // 405 Method Not Allowed
       break;
   }
 
   khttp_free(&req); req=(struct kreq){};
-
-  fprintf(stderr, "\n");
-  fprintf(stderr, "\n");
 
   return 0;
 

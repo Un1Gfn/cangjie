@@ -27,6 +27,8 @@
   echo "http://$IPP/cgi-bin/cj5.cgi/defpage (200, explicit)"
   echo
 
+  echo "curl -vX OPTIONS http://$IPP/cgi-bin/cj5.cgi"
+
   echo "${CMD[*]}"
   "${CMD[@]}"
   echo
