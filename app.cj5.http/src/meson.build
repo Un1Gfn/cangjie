@@ -32,9 +32,12 @@ add_global_arguments('-D_GNU_SOURCE',
 
 executable(meson.project_name(),
   'main.c',
+  # '/home/darren/cangjie/app.cj5.lookup/l2r.c',
   dependencies: [
     dependency('kcgi'),
     dependency('kcgi-html'),
+    # https://github.com/mesonbuild/meson/issues/4297
+    meson.get_compiler('c').find_library('gdbm', required : true)
   ],
   install: true,
 )

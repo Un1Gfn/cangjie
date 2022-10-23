@@ -1,0 +1,5 @@
+
+/* https://stackoverflow.com/a/12340748/8243991 */
+input:is([type="search"]/*, [type="number"]*/) {
+	width: 100%;
+}

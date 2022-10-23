@@ -4,10 +4,14 @@
 
 // include.base
 #include <assert.h>
-#include <stdlib.h> // free EXIT_FAILURE
-#include <string.h> // memset
-#include <stdio.h> // fprintf(stderr, ...)
+#include <gdbm.h>
 #include <stdbool.h>
+#include <stdio.h> // fprintf(stderr, ...)
+#include <stdlib.h> // free mbstowcs EXIT_FAILURE
+#include <string.h> // memset
+#include <unistd.h> // access
+#include <sys/stat.h> // chmod
+#include <locale.h> // setlocale
 
 // include.kcgi.requirements
 #include <stdarg.h>
@@ -18,6 +22,13 @@
 
 // include.kcgihtml
 #include <kcgihtml.h>
+
+#define RPK 5
+// fullwidth space
+#define SEP "\u3000"
+#define DB "/home/darren/cangjie/app.cj5.mkdict/Cangjie5.gdbm"
+
+GDBM_FILE dbf=NULL;
 
 /* Recognised page requests.  See pages[]. */
 enum page {
@@ -65,8 +76,99 @@ static void resp_open(struct kreq *const req, enum khttp http){
   // assert(KCGI_OK==khttp_body_compress(req, 1));
 }
 
+static const char *letter2radical(const char c){
+  assert('a'<=c&&c<='z');
+  static const char *const keyboard[]={
+    "\u65E5", 
+    "\u6708", 
+    "\u91D1", 
+    "\u6728", 
+    "\u6C34", 
+    "\u706B", 
+    "\u571F", 
+    "\u7AF9", 
+    "\u6208", 
+    "\u5341", 
+    "\u5927", 
+    "\u4E2D", 
+    "\u4E00", 
+    "\u5F13", 
+    "\u4EBA", 
+    "\u5FC3", 
+    "\u624B", 
+    "\u53E3", 
+    "\u5C38", 
+    "\u5EFF", 
+    "\u5C71", 
+    "\u5973", 
+    "\u7530", 
+    "\u96E3", 
+    "\u535C", 
+
+    "\u91CD", 
+  };
+  _Static_assert(26=='z'-'a'+1, "");
+  _Static_assert(26==sizeof(keyboard)/sizeof(char*), "");
+  // for(int i=0; i<26; ++i)
+  //   fprintf(stderr, "%c %s\n", 'a'+i, keyboard[i]);
+  return keyboard[c-'a'];
+}
+
 static void lookup(struct khtmlreq *const rp, const char *const s){
-  khtml_printf(rp, "'%s'", s);
+
+  wchar_t wcs[1024]={};
+  size_t n=0;
+
+  // khtml_printf(rp, "%s", s); khtml_elem(rp, KELEM_BR);
+
+  // wchar.h:mbsrtowcs
+  // stdlib.h:mbstowcs
+  n=mbstowcs(wcs, s, 1024);
+  // assert(1==n);
+  assert(1<=n && n<1024);
+  // fprintf(stderr, "%zu\n", n);
+  // fprintf(stderr, "%zu\n", n+1);
+  // return;
+
+  for(size_t i=0; wcs[i]; ++i){
+
+    assert(i<1024);
+
+    char pmb[MB_CUR_MAX+1]; bzero(pmb, MB_CUR_MAX+1);
+    n=wctomb(pmb, wcs[i]);
+    assert(1<=n && n<=MB_CUR_MAX);
+    khtml_printf(rp, "%s", pmb);
+
+    datum v=gdbm_fetch(dbf,(datum){
+      .dptr=(void*)(&wcs[i]),
+      .dsize=sizeof(wchar_t)
+    });
+    if(v.dptr){
+      assert(v.dsize);
+    }else{
+      assert(!v.dsize);
+      khtml_elem(rp, KELEM_BR);
+      continue;
+    }
+
+    // fprintf(stderr, "%lc\n", wcs[0]);
+    // fwrite(d.dptr, 1, d.dsize,stdout);
+
+    for(int j=0; j<v.dsize; j+=RPK+1){
+      khtml_printf(rp, SEP);
+      for(int k=0; k<RPK; ++k){
+        const char c=v.dptr[j+k];
+        if('\0'==c){
+          break;
+        }else{
+          khtml_printf(rp, "%s", letter2radical(c));
+        }
+      }
+    }
+    khtml_elem(rp, KELEM_BR);
+
+  }
+
 }
 
 /*
@@ -87,6 +189,7 @@ static void sendindex(struct kreq *req){
     khtml_elem(&r, KELEM_HEAD); {
       khtml_elem(&r, KELEM_TITLE); khtml_puts(&r, "Welcome!"); khtml_closeelem(&r, 1);
       khtml_attr(&r, KELEM_META, KATTR_CHARSET, "utf-8", KATTR__MAX); // <meta charset="utf-8">
+      khtml_attr(&r, KELEM_LINK, KATTR_REL, "stylesheet", KATTR_HREF, "/cj5.css", KATTR__MAX); // <link rel="stylesheet" href="mystyle.css">
     }; khtml_closeelem(&r, 1); // </head>
 
     khtml_elem(&r, KELEM_BODY); {
@@ -112,41 +215,15 @@ static void sendindex(struct kreq *req){
           khtml_elem(&r, KELEM_LEGEND); khtml_puts(&r, "Post (multipart)"); khtml_closeelem(&r, 1);
 
           // p.input.buttons
-          khtml_elem(&r, KELEM_P);
-
-            assert(KCGI_OK==khtml_attr(&r, KELEM_A, KATTR_HREF, "/cgi-bin/cj5.cgi/defpage", KATTR__MAX));
-              // khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "button", KATTR_VALUE, "\U0001F5D1", KATTR__MAX);
-              khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "button", KATTR_VALUE, "\u274C", KATTR__MAX);
-            assert(KCGI_OK==khtml_closeelem(&r, 1));
-            // a(&r, "/cgi-bin/cj5.cgi/defpage", "\u232B");
-            // a(&r, "/cgi-bin/cj5.cgi/defpage", "\U0001F5D1");
-
+          khtml_elem(&r, KELEM_P); {
+            khtml_attr(&r, KELEM_A, KATTR_HREF, "/cgi-bin/cj5.cgi/defpage", KATTR__MAX); khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "button", KATTR_VALUE, "\u274C", KATTR__MAX) /* "\u232B" "\U0001F5D1" */; khtml_closeelem(&r, 1);
             khtml_puts(&r, " ");
             // https://www.compart.com/en/unicode/block/U+2190
             // https://unicode-table.com/en/blocks/arrows/
-            // khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "reset", KATTR_VALUE, "\u27F3", KATTR__MAX);
-            khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "reset", KATTR_VALUE, "\u21BA", KATTR__MAX);
-            // khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "reset", KATTR_VALUE, "\u21A9", KATTR__MAX);
+            khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "reset", KATTR_VALUE, "\u21BA", KATTR__MAX); // "\u27F3" "\u21A9"
             khtml_puts(&r, " ");
             khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "submit", KATTR_VALUE, "\U0001F50E", KATTR__MAX);
-            // khtml_attr(&r, KELEM_INPUT, KATTR_TYPE, "submit", KATTR_VALUE, "\xF0\x9F\x94\x8E", KATTR__MAX);
-          khtml_closeelem(&r, 1);
-
-          // p.input.cj5
-          khtml_elem(&r, KELEM_P); {
-            struct kpair *const p=req->fieldmap[KEY_STRING];
-            khtml_attr(&r, KELEM_INPUT,
-              KATTR_TYPE, "search", // "text"
-              KATTR_NAME, keys[KEY_STRING].name,
-              KATTR_VALUE, p?p->val:"", // default value for input.reset
-            KATTR__MAX);
-            if(p){
-              khtml_puts(&r, " result: ");
-              assert(p->val && p->val==p->parsed.s);
-              const size_t n=strnlen(p->val, 1024*8); assert(n<1024*8); assert(p->val[n-1]&&!p->val[n]);
-              lookup(&r, p->val);
-            }
-          }; khtml_closeelem(&r, 1);
+          } khtml_closeelem(&r, 1);
 
           // p.input.incr
           khtml_elem(&r, KELEM_P); {
@@ -160,6 +237,24 @@ static void sendindex(struct kreq *req){
               khtml_printf(&r, "%ld", 1+req->fieldmap[KEY_INTEGER]->parsed.i);
             }
           }; khtml_closeelem(&r, 1);
+
+          // p.input.cj5
+          khtml_elem(&r, KELEM_P); {
+            struct kpair *const p=req->fieldmap[KEY_STRING];
+            khtml_attr(&r, KELEM_INPUT,
+              KATTR_TYPE, "search", // "text"
+              KATTR_NAME, keys[KEY_STRING].name,
+              KATTR_VALUE, p?p->val:"", // default value for input.reset
+            KATTR__MAX);
+            if(p){
+              khtml_elem(&r, KELEM_P); {
+                assert(p->val && p->val==p->parsed.s);
+                const size_t n=strnlen(p->val, 1024*8); assert(n<1024*8); assert(p->val[n-1]&&!p->val[n]);
+                lookup(&r, p->val);
+              }; khtml_closeelem(&r, 1);
+            }
+          }; khtml_closeelem(&r, 1);
+
 
         }; khtml_closeelem(&r, 1); // </fieldset>
 
@@ -187,6 +282,13 @@ int main(){
 
   // fprintf(stderr, "\n");
   // fprintf(stderr, ": main.c\n");
+
+  assert(setlocale(LC_ALL,"zh_TW.UTF-8"));
+
+  assert(0==access(DB,F_OK));
+  assert(0==chmod(DB,00444));
+  assert(0==access(DB,R_OK));
+  assert((dbf=gdbm_open(DB,0,GDBM_READER,0,NULL)));
 
   struct kreq req={/*.port=9513u*/};
 
@@ -223,6 +325,8 @@ int main(){
   }
 
   khttp_free(&req); req=(struct kreq){};
+
+  assert(0==gdbm_close(dbf)); dbf=NULL;
 
   return 0;
 
