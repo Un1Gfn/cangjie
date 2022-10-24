@@ -1,6 +1,5 @@
 project('cj5.cgi', 'c',
   default_options: [
-    'prefix=/home/darren/cangjie/app.cj5.http/srv/',
     'bindir=cgi-bin',
     'backend=ninja',
     'buildtype=debug',
@@ -17,18 +16,20 @@ project('cj5.cgi', 'c',
   version: '0.1',
 )
 
-add_global_arguments('-D_GNU_SOURCE',
-                     '-Wdeprecated-declarations',
-                     '-Winline',
-                     '-Wno-pedantic',
-                     '-Wshadow',
-                     '-Wno-error=deprecated-declarations',
-                     '-Wno-error=unused-but-set-variable',
-                     '-Wno-error=unused-function',
-                     '-Wno-error=unused-label',
-                     '-Wno-error=unused-parameter',
-                     '-Wno-error=unused-variable',
-                     language: 'c')
+add_global_arguments(
+  '-D_GNU_SOURCE',
+  '-Wdeprecated-declarations',
+  '-Winline',
+  '-Wno-pedantic',
+  '-Wshadow',
+  '-Wno-error=deprecated-declarations',
+  '-Wno-error=unused-but-set-variable',
+  '-Wno-error=unused-function',
+  '-Wno-error=unused-label',
+  '-Wno-error=unused-parameter',
+  '-Wno-error=unused-variable',
+  language: 'c'
+)
 
 CC=meson.get_compiler('c')
 
@@ -43,3 +44,7 @@ executable(meson.project_name(),
   ],
   install: true,
 )
+
+install_data('cj5.css', install_dir: get_option('prefix'))
+install_data('../app.cj5.mkdict/Cangjie5.gdbm', install_dir: get_option('prefix'))
+install_data('../app.cj5.mkdict/Cangjie5_special.gdbm', install_dir: get_option('prefix'))

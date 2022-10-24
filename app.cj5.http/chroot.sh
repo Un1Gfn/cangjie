@@ -12,8 +12,8 @@ err(){
 
   echo
 
-  F1=/home/darren/cangjie/app.cj5.http/src
-  T1=/home/darren/wt88047.pmbootstrap/chroot_buildroot_aarch64/home/darren/cj5.bindmount
+  F1=/home/darren/cangjie
+  T1=/home/darren/wt88047.pmbootstrap/chroot_buildroot_aarch64/home/darren/cangjie.bindmount
 
   mkdir -p "$T1"
   [ -z "$(ls -A "$T1")" ] || err "dest dir not empty"
@@ -22,8 +22,8 @@ err(){
   echo
 
   echo ":; su - darren"
-  echo ":; cd ~/cj5.bindmount"
-  echo ":; make distclean default"
+  echo ":; cd ~/cangjie.bindmount/app.cj5.http"
+  echo ":; make distclean; make default"
   echo "## make t "
   echo
 
@@ -32,9 +32,9 @@ err(){
 
   UMOUNT=(sudo umount -v "$T1")
   SHUTDOWN=(pmbootstrap shutdown)
-  echo ":; ${UMOUNT[@]}"
+  echo ":; ${UMOUNT[*]}"
   echo
-  echo ":; ${SHUTDOWN[@]}"
+  echo ":; ${SHUTDOWN[*]}"
   echo
   "${UMOUNT[@]}" || err "unmount failed"
   "${SHUTDOWN[@]}" || err "shutdown failed"

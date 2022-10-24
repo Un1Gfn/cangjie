@@ -3,7 +3,7 @@
 {
 
   IPP="127.11.111.201:9513"
-  SRV=/home/darren/cangjie/app.cj5.http/srv
+  SRV=/home/darren/cangjie/app.cj5.http/builddir.x86_64/srv.x86_64
   CMD=(
     busybox httpd
     -f
@@ -36,4 +36,3 @@
   printf "\e]0;%s\a" "Alacritty"
 
 }; exit
-
