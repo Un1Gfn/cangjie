@@ -7,6 +7,8 @@
 
   echo "http://$IPP/cgi-bin/cj5.cgi"
 
+  cd "$SRV" || exit 1
+
   sudo /bin/busybox-extras httpd \
     -f \
     -vv \

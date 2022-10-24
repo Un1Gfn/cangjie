@@ -2,14 +2,15 @@
 
 # 'meson compile' can also accept TARGET(s)
 # N:=meson compile -v -C $(O)
-N:=ninja -j4 -v -C $(O)
 A:=$(shell uname -m)
 O:=builddir.$(A)
 S:=srv.$(A)
+N:=ninja -j4 -v -C $(O)
 
-# H:=wt88047wlan0
-H:=wt88047usb
+U:=wt88047usb
 E:=enp0s20f0u2
+W:=wt88047wlan0
+H:=$(W)
 
 ################################################################################
 
@@ -25,22 +26,30 @@ cscope:
 	@echo "usage: make cscope ID=<identifier>"
 	cscope -1 $(shell pkg-config --cflags-only-I kcgi{,-html}) $(ID) main.c
 
+# test:
+# 	scp -r builddir.aarch64/srv.aarch64/cgi-bin/cj5.cgi root@$(H):/srv.cj5/cgi-bin/
+
+# test:
+# 	@rm -fv builddir.aarch64/bin.mkdict/Cangjie5_special.gdbm
+# 	@builddir.aarch64/bin.mkdict/mkdict.out builddir.aarch64/bin.mkdict/Cangjie5_special.gdbm <bin.mkdict/Cangjie5_special.txt
+
 ################################################################################
 
 transfer: builddir.aarch64/srv.aarch64
 	[ x86_64 = $(A) ]
-	ip -o -4 addr show dev $(E) | grep inet >/dev/null || sudo dhcpcd $(E)
+	if [ $(H) = $(U) ]; then ip -o -4 addr show dev $(E) | grep inet >/dev/null || sudo dhcpcd $(E); fi
+	@:
+	scp bin.http/wt88047.srv.cj5.sh root@$(H):/srv.cj5.sh
+	ssh root@$(H) chmod +x /srv.cj5.sh
+	@: # https://wiki.postmarketos.org/wiki/Firewall
+	scp bin.http/99_http.nft root@$(H):/etc/nftables.d
+	ssh root@$(H) rc-service nftables restart
+	ssh root@$(H) nft list ruleset
 	@:
 	ssh root@$(H) rm -rfv /srv.cj5
 	scp -r $< root@$(H):/srv.cj5
 	ssh root@$(H) chown -Rv nobody:nobody /srv.cj5
 	ssh root@$(H) find /srv.cj5
-	@:
-	scp 99_http.nft root@$(H):/etc/etc/nftables.d
-	scp wt88047.srv.cj5.sh root@$(H):/srv.cj5.sh
-	ssh root@$(H) chmod +x /srv.cj5.sh
-	ssh root@$(H) rc-service restart nftables
-	ssh root@$(H) nft list ruleset
 
 # reinstall to generate logs for uninstallation
 uninstall:

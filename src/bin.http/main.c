@@ -24,7 +24,7 @@
 #include <kcgihtml.h>
 
 #define RPK 5
-#define DB "../Cangjie5.gdbm"
+#define DB "../Cangjie5_special.gdbm"
 
 // fullwidth space
 #define SEP "\u3000"
@@ -281,18 +281,21 @@ static void (*const disps[PAGE__MAX])(struct kreq*) = {
 
 int main(){
 
-  char *pwd=get_current_dir_name();
-  fprintf(stderr, "%s\n", pwd);
-  free(pwd); pwd=NULL;
-
-  // fprintf(stderr, "\n");
-  // fprintf(stderr, ": main.c\n");
-
   assert(setlocale(LC_ALL,"zh_TW.UTF-8"));
 
-  assert(0==access(DB,F_OK));
-  assert(0==chmod(DB,00444));
-  assert(0==access(DB,R_OK));
+  char *pwd=get_current_dir_name();
+  fprintf(stderr, ": PWD=%s\n", pwd);
+  fprintf(stderr, ": DB=%s\n", DB);
+  free(pwd); pwd=NULL;
+
+  // assert(0==access("/", F_OK));
+  // assert(0==access("/srv.cj5", F_OK));
+  // assert(0==access("/srv.cj5/cgi-bin", F_OK));
+  // assert(0==access("/srv.cj5/cgi-bin/cj5.cgi", F_OK));
+  // assert(0==access("/srv.cj5/Cangjie5.gdbm", F_OK));
+  assert(0==access(DB, F_OK));
+  assert(0==chmod(DB, 00444));
+  assert(0==access(DB, R_OK));
   assert((dbf=gdbm_open(DB,0,GDBM_READER,0,NULL)));
 
   struct kreq req={/*.port=9513u*/};
