@@ -7,10 +7,11 @@ O:=builddir.$(A)
 S:=srv.$(A)
 N:=ninja -j4 -v -C $(O)
 
+W:=wt88047wlan0
 U:=wt88047usb
 E:=enp0s20f0u2
-W:=wt88047wlan0
-H:=$(W)
+# H:=$(W)
+H:=$(U)
 
 ################################################################################
 
@@ -25,6 +26,9 @@ entr:
 cscope:
 	@echo "usage: make cscope ID=<identifier>"
 	cscope -1 $(shell pkg-config --cflags-only-I kcgi{,-html}) $(ID) main.c
+
+test:
+	scp bin.http/wt88047.srv.cj5.sh root@$(H):/srv.cj5.sh
 
 # test:
 # 	scp -r builddir.aarch64/srv.aarch64/cgi-bin/cj5.cgi root@$(H):/srv.cj5/cgi-bin/
